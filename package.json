@@ -1,0 +1,32 @@
+{
+  "author": {
+    "name": "Nicklas Aven",
+    "email": "nicklas.aven@jordogskog.no",
+    "url": "http://www.jordogskog.no"
+  },
+  "name": "twkb.js",
+  "description": "TWKB format reader",
+  "version": "0.0.1",
+  "homepage": "",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "contributors": [{
+     "name" : "Javi Santana",
+     "email" : "jsantana@cartodb.com",
+     "url" : "http://javisantana.com"
+    }
+  ],
+  "main": "index.js",
+  "dependencies": {},
+  "scripts": {
+  },
+  "devDependencies": {
+    "browserify": "3.23.1"
+  },
+  "optionalDependencies": {},
+  "engines": {
+    "node": "*"
+  }
+}
