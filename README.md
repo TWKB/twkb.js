@@ -8,6 +8,13 @@ warning: this is a preview and may change without any notice
 TWKB.parse(data).toGeoJSON()
 ```
 
+## building
+
+```
+npm install
+make dist/tkwb.uncompressed.js
+```
+
 ## example
 
 this is a simple example using leaflet
