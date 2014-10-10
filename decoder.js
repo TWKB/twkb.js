@@ -210,7 +210,11 @@ function parse_binary(ta)
       return this.geometry.map(function(g) {
         return {
           type: 'Feature',
-          geometry: g
+          properties: g.properties,
+          geometry: {
+            type: g.type,
+            coordinates: g.coordinates
+          }
         };
       });
     }
