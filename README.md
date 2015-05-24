@@ -1,4 +1,11 @@
 
+### Note: 
+
+This library is outdated and doesn't follow the new specification.
+It will be updated soon. 
+### End Note
+
+
 this library allows to decode TWKB.
 warning: this is a preview and may change without any notice
 
