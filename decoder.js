@@ -1,345 +1,286 @@
-"use strict";
+var MAX_value=1<< 63;
+var MIN_value=-1<< 63;
 
-//
-// constants
-//
-var POINT = 1;
-var LINESTRING = 2;
-var POLYGON = 3;
-var MULTIPOINT = 4;
-var MULTILINESTRING = 5;
-var MULTIPOLYGON = 6;
-var AGG_POINT = 21;
-var AGG_LINESTRING = 22;
-var AGG_POLYGON = 23;
-
-function ReadVarInt64(ta_struct) {
-  var cursor = ta_struct.cursor,
-      nVal = 0,
-      nShift = 0,
-      nByte;
-
-  while(true)
-  {
-    nByte = ta_struct.ta[cursor];
-    if ((nByte & 0x80) === 0)
-    {
-      cursor++;
-      ta_struct.cursor = cursor;
-      return nVal | (nByte << nShift);
-    }
-    nVal = nVal | (nByte & 0x7f) << nShift;
-    cursor ++;
-    nShift += 7;
-  }
-}
-
-function ReadVarSInt64(ta_struct) {
-  var nVal = ReadVarInt64(ta_struct);
-  /* un-zig-zag-ging */
-  if ((nVal & 1) === 0)
-    return ((nVal) >> 1);
-  return -(nVal >> 1)-1;
-}
-
-function read_pa(ta_struct)
+var TWKB = 
 {
+	geoJSONfromBuffer: function (buffer,options)
+	{
+		var geoms = {};
+		geoms.type="FeatureCollection";
+		geoms.features=[];
+				
+		var the_length=buffer.byteLength;
+			
+		var ta_struct = {};
+		ta_struct.buffer=buffer;
+		if (options.startReadingAt)
+			ta_struct.cursor = options.startReadingAt;
+		else
+			ta_struct.cursor = 0;
+		ta_struct.include_bbox=options.include_bbox;
+		while(ta_struct.cursor<the_length)
+		{	
+			var res = TWKB.readBuffer(ta_struct)
+			for (var i =0, len=res.length;i<len;i++)
+				geoms.features.push(res[i]);	
+		}	
+		return geoms;
+		
+	}
+	,
+	readBuffer: function (ta_struct)
+	{
+			var has_z=0;
+			var has_m=0;
+		/*Here comes a byte containing type info and precission*/
+			var flag = ta_struct.buffer[ta_struct.cursor];
+			ta_struct.cursor++;
+				
+			var typ=flag&0x0F;	
+			var precision_xy=TWKB.unzigzag((flag&0xF0)>>4);
+			ta_struct.factors=[];
+			ta_struct.factors[0]=ta_struct.factors[1]= Math.pow(10, precision_xy);
 
-  var ndims = ta_struct.ndims;
-  var factor = ta_struct.factor;
-  var npoints = ta_struct.npoints;
+		//Flags for options
+		
+			var flag = ta_struct.buffer[ta_struct.cursor];
+			ta_struct.cursor ++;
 
-  ta_struct.coords = [];
+			ta_struct.has_bbox   =  flag & 0x01;
+			ta_struct.has_size   = (flag & 0x02) >> 1;
+			ta_struct.has_idlist = (flag & 0x04) >> 2;
+			var extended_dims = (flag & 0x08) >> 3;
+			ta_struct.is_empty   = (flag & 0x10) >> 4;
 
-  for (var i = 0; i < npoints; i++)
-  {
-    ta_struct.coords[i] = []
-    for (var j = 0; j < ndims; ++j)
-    {
-      ta_struct.refpoint[j] += ReadVarSInt64(ta_struct);
-      ta_struct.coords[i][j] = ta_struct.refpoint[j]/factor;
-    }
-  }
-  return 0;
+			if ( extended_dims )
+			{
+				var extended_dims =  ta_struct.buffer[ta_struct.cursor];
+				ta_struct.cursor ++;
+
+
+				/* Strip Z/M presence and precision from ext byte */
+				has_z    = (extended_dims & 0x01);
+				has_m    = (extended_dims & 0x02) >> 1;
+				precision_z = (extended_dims & 0x1C) >> 2;
+				precision_m = (extended_dims & 0xE0) >> 5;
+
+				/* Convert the precision into factor */
+				if(has_z)
+					ta_struct.factors[2] = Math.pow(10, precision_z);
+				if(has_m)
+					ta_struct.factors[2+has_z] = Math.pow(10, precision_m);			
+			}
+
+			ta_struct.ndims = 2 + has_z + has_m;		
+		
+		if(ta_struct.has_size)
+			ta_struct.size=TWKB.ReadVarInt64(ta_struct);
+		
+		ta_struct.bbox={};
+		if(ta_struct.has_bbox)
+		{
+			ta_struct.bbox.min=[];
+			ta_struct.bbox.max=[];
+			for (var j=0;j<ta_struct.ndims;j++)
+			{
+				ta_struct.bbox.min[j]=TWKB.ReadVarSInt64;
+				ta_struct.bbox.max[j]=TWKB.ReadVarSInt64+ta_struct.bbox.min[j];
+			}
+		}
+		else
+		{			
+			ta_struct.bbox.min=[MAX_value,MAX_value,MAX_value,MAX_value];
+			ta_struct.bbox.max=[MIN_value,MIN_value,MIN_value,MIN_value];
+		}
+		
+		/*TWKB variable will carry the last refpoint in a pointarray to the next pointarray. It will hold one value per dimmension. */
+		var buffer = new ArrayBuffer(4*ta_struct.ndims);
+		ta_struct.refpoint = new Int32Array(buffer);
+		for (var i = 0;i<ta_struct.ndims;i++)
+		{
+			ta_struct.refpoint[i]=0;
+		}		
+		
+		var res=[];
+		/*If POINT*/			
+		if(typ==1)
+		{
+			res[0]=TWKB.parse_point(ta_struct)
+		}			
+		/*if LINESTRING*/
+		else if(typ==2)
+		{
+			res[0]=TWKB.parse_line(ta_struct)
+		}		
+		/*if POLYGON*/
+		else if(typ==3)
+		{	
+			res[0]=TWKB.parse_polygon(ta_struct)
+		}		
+		/*if MultiPOINT*/
+		else if(typ==4)
+		{
+			res = TWKB.parse_multi(ta_struct,TWKB.parse_point);
+		}			
+		/*if MultiLINESTRING*/
+		else if(typ==5)
+		{
+			res = TWKB.parse_multi(ta_struct,TWKB.parse_line);
+		}		
+		/*if MultiPOLYGON*/
+		else if(typ==6)
+		{	
+			res = TWKB.parse_multi(ta_struct,TWKB.parse_polygon);
+		}
+		/*if Collection*/
+		else if(typ==7)
+		{	
+			res = TWKB.parse_multi(ta_struct,TWKB.readBuffer);
+		}
+		return res;
+		
+	}
+
+
+	,
+	ReadVarInt64: function ReadVarInt64(ta_struct)
+	{
+	    cursor=ta_struct.cursor;
+		nVal = 0;
+	    nShift = 0;
+
+	    while(1)
+	    {
+		nByte = ta_struct.buffer[cursor];
+		if (!(nByte & 0x80))
+		{
+		    cursor++;
+		ta_struct.cursor=cursor;
+		    return nVal | (nByte << nShift);
+		}
+		nVal = nVal | (nByte & 0x7f) << nShift;
+		cursor ++;
+		nShift += 7;
+	    }
+	}
+	,
+	ReadVarSInt64: function(ta_struct)
+	{
+	    nVal = TWKB.ReadVarInt64(ta_struct);
+	    return TWKB.unzigzag(nVal);
+	}
+	,
+	unzigzag: function (nVal)
+	{
+	    if ((nVal & 1) == 0) 
+		return ((nVal) >> 1);
+	    else
+		return -(nVal >> 1)-1;
+	}
+
+	,
+	parse_point: function (ta_struct)
+	{
+		var geom={};
+		geom.type="Point";	
+		geom.coordinates = TWKB.read_pa(ta_struct,1);
+		return geom;
+	}
+	,
+	parse_line: function (ta_struct)
+	{
+		var geom={};
+		geom.type="LineString";			
+		var npoints=TWKB.ReadVarInt64(ta_struct);
+		geom.coordinates = [];
+		geom.coordinates = TWKB.read_pa(ta_struct,npoints);
+		return geom;
+	}
+	,
+	parse_polygon: function (ta_struct)
+	{
+		var geom={};
+		geom.type="Polygon";
+
+		geom.coordinates = [];		
+		var nrings=TWKB.ReadVarInt64(ta_struct);
+		for (ring=0;ring<nrings;ring++)
+		{		
+			var npoints=TWKB.ReadVarInt64(ta_struct);
+			geom.coordinates[ring] =  TWKB.read_pa(ta_struct,npoints);
+		}	
+		return geom;
+	}
+	,
+	parse_multi: function (ta_struct,parser)
+	{
+		var ngeoms=TWKB.ReadVarInt64(ta_struct);
+		
+		var geoms=[];
+		if(ta_struct.has_idlist)
+		{
+
+			var IDlist=TWKB.readIDlist(ta_struct,ngeoms);
+			for (var i=0;i<ngeoms;i++)
+			{		
+				Feature={};
+				Feature.type="Feature";
+				Feature.id=IDlist[i];
+				Feature.geometry= parser(ta_struct);						
+				geoms.push(Feature);
+			}	
+		}
+		else
+		{
+			for (geom=0;geom<ngeoms;geom++)
+			{		
+				geoms.push(parser(ta_struct));
+			}
+		}
+		return geoms;
+	}
+	
+	,
+
+	read_pa: function(ta_struct,npoints)
+	{
+		var coords=[];
+		var ndims=ta_struct.ndims;
+		var factors=ta_struct.factors;
+		
+
+		for (i =0;i<(npoints);i++)
+		{
+			coords[i]=[];
+			for (j =0;j<(ndims);j++)
+			{
+				ta_struct.refpoint[j]+=TWKB.ReadVarSInt64(ta_struct);
+				coords[i][j]=ta_struct.refpoint[j]/factors[j];				
+			}
+		}
+		if(ta_struct.include_bbox && !ta_struct.has_bbox)
+		{
+			for (i =0;i<(npoints);i++)
+			{
+				for (j =0;j<(ndims);j++)
+				{
+					if(coords[i][j]<ta_struct.bbox.min[j])
+						ta_struct.bbox.min[j]=coords[i][j];
+					if(coords[i][j]>ta_struct.bbox.max[j])
+						ta_struct.bbox.max[j]=coords[i][j];
+				}
+			}
+		}
+		return coords;	
+	}
+	,
+	readIDlist: function(ta_struct,n)
+	{
+		var IDlist=[];
+		for (var i =0;i<n;i++)
+			IDlist.push(TWKB.ReadVarSInt64(ta_struct));
+		return IDlist;
+	}
 }
 
-function parse_point(ta_struct,layer)
-{
-  var id = null;
-  if (ta_struct.id) {
-    id = ReadVarSInt64(ta_struct);
-  }
-  ta_struct.npoints = 1;
-  read_pa(ta_struct);
-  ta_struct.addGeom(_build_geom(ta_struct.coords, "Point", id))
-}
-
-function parse_line(ta_struct,layer)
-{
-  var id = null;
-  if (ta_struct.id) {
-    id = ReadVarSInt64(ta_struct);
-  }
-  ta_struct.npoints = ReadVarInt64(ta_struct);
-  read_pa(ta_struct);
-  ta_struct.addGeom(_build_geom(ta_struct.coords, "LineString", id));
-}
-
-function parse_polygon(ta_struct,layer)
-{
-  var id = null;
-  if (ta_struct.id) {
-    id = ReadVarSInt64(ta_struct);
-  }
-  var nrings = ReadVarInt64(ta_struct);
-  var rings = [];
-  for (var ring = 0; ring < nrings; ring++) {
-    ta_struct.npoints = ReadVarInt64(ta_struct);
-    read_pa(ta_struct);
-    rings.push(ta_struct.coords);
-  }
-
-  ta_struct.addGeom(_build_geom(rings, "Polygon", id))
-}
-
-function parse_multipoint(ta_struct,layer)
-{
-  var id = null;
-  if (ta_struct.id) {
-    id = ReadVarSInt64(ta_struct);
-  }
-
-  ta_struct.npoints = ReadVarInt64(ta_struct);
-  read_pa(ta_struct);
-  ta_struct.addGeom(_build_geom(ta_struct.coords, "MultiPoint", id));
-}
-
-
-function _build_geom(coords, type, id) {
-  var g = {
-    "coordinates": coords,
-    "type": type
-  };
-  if (id !== null) {
-    g.properties = {
-      id : id
-    };
-  }
-  return g;
-}
-
-function parse_multiline(ta_struct,layer)
-{
-  var id = null;
-  if (ta_struct.id) {
-    id = ReadVarSInt64(ta_struct);
-  }
-
-  var ngeoms = ReadVarInt64(ta_struct);
-
-  var rings = [];
-  for (var geom = 0; geom < ngeoms; ++geom) {
-    ta_struct.npoints = ReadVarInt64(ta_struct);
-    read_pa(ta_struct);
-    rings.push(ta_struct.coords);
-  }
-
-  ta_struct.addGeom(_build_geom(rings, "MultiLineString", id));
-}
-
-
-function parse_multipolygon(ta_struct,layer) {
-
-  var id = null, ngeoms, polygons = [];
-  if (ta_struct.id) {
-    id = ReadVarSInt64(ta_struct);
-  }
-
-  ngeoms = ReadVarInt64(ta_struct);
-  polygons = [];
-
-  for (var geom = 0; geom < ngeoms; ++geom)
-  {
-    var nrings = ReadVarInt64(ta_struct);
-    var rings = [];
-    for (var ring = 0; ring < nrings; ++ring)
-    {
-      ta_struct.npoints = ReadVarInt64(ta_struct);
-      read_pa(ta_struct);
-      rings.push(ta_struct.coords);
-    }
-    polygons.push(rings);
-  }
-
-  ta_struct.addGeom(_build_geom(polygons, "MultiPolygon", id));
-}
-
-function parse_agg_point(ta_struct) {
-  var n_geometries = ReadVarInt64(ta_struct);
-  for (var t=0;t < n_geometries; ++t) {
-    parse_point(ta_struct);
-  }
-}
-
-function parse_agg_line(ta_struct) {
-  var n_geometries = ReadVarInt64(ta_struct);
-  for (var t=0; t < n_geometries; t++) {
-    parse_line(ta_struct);
-  }
-}
-
-function parse_agg_polygon(ta_struct) {
-  var n_geometries = ReadVarInt64(ta_struct);
-  for (var t = 0; t < n_geometries; ++t) {
-    parse_polygon(ta_struct);
-  }
-}
-
-
-function parse_binary(ta)
-{
-  var flag, the_size;
-  var ta_struct = {
-    geometry: [],
-
-    addGeom: function(g) {
-      this.geometry.push(g);
-    },
-
-    toGeoJSON: function() {
-      return this.geometry.map(function(g) {
-        return {
-          type: 'Feature',
-          properties: g.properties,
-          geometry: {
-            type: g.type,
-            coordinates: g.coordinates
-          }
-        };
-      });
-    }
-  };
-
-  ta_struct.ta = ta;
-  ta_struct.length = ta.length;
-  ta_struct.cursor = 0;
-
-  /*
-   * This variable will carry the last refpoint in a pointarray to the next pointarray.
-   * It will hold one value per dimmension. For now we just give it the min INT32 number to indicate that we don't have a refpoint yet 
-   */
-  ta_struct.refpoint = new Int32Array(4);
-
-  var n = 0;
-  while (ta_struct.cursor < ta_struct.length) {
-    // The first byte contains information about if there is id and geometry size delivered and in what precission the data is
-    flag = ta[ta_struct.cursor];
-    ++ta_struct.cursor;
-
-    /* 1 if ID is used, 0 if not */
-    ta_struct.id = flag & 0x01;
-
-    /* 1 if there is sizes, 0 if not */
-    ta_struct.sizes = flag & 0x02;
-
-    /* precission gives the factor to divide the coordinate with, giving the right value and number of deciamal digits */
-    var precision = (flag&0xF0) >> 4;
-    ta_struct.factor = Math.pow(10, precision);
-
-    if (ta_struct.sizes) {
-      the_size = ReadVarInt64(ta_struct);
-    }
-
-    /* Here comes a byte containgin type and number of dimmension information */
-    flag = ta[ta_struct.cursor];
-    ++ta_struct.cursor;
-
-    var typ = flag & 0x1F;
-    ta_struct.ndims = (flag&0xE0) >> 5;
-
-    // we store each geoemtry in a object, "geom"
-    // reset refpoint and bbox
-    for (var d = 0; d < ta_struct.ndims; ++d) {
-      ta_struct.refpoint[d] = 0;
-    }
-
-
-    switch(typ) {
-      case POINT:
-        parse_point(ta_struct);
-        ++n;
-        break;
-
-      case LINESTRING:
-        parse_line(ta_struct);
-        n++;
-        break;
-
-      case POLYGON:
-        parse_polygon(ta_struct);
-        n++;
-        break;
-
-      case MULTIPOINT:
-        parse_multipoint(ta_struct);
-        n++;
-        break;
-
-      case MULTILINESTRING:
-        parse_multiline(ta_struct);
-        break;
-
-      case MULTIPOLYGON:
-        parse_multipolygon(ta_struct);
-        break;
-
-      case AGG_POINT:
-        parse_agg_point(ta_struct);
-        break;
-
-      case AGG_LINESTRING:
-        parse_agg_line(ta_struct);
-        break;
-
-      case AGG_POLYGON:
-        parse_agg_polygon(ta_struct);
-        break;
-
-      default:
-        throw new Error("unknow geometry type: " + typ);
-    }
-
-  }
-
-  return ta_struct;
-}
-
-
-
-
-/*
-self.addEventListener('message', function(e) {
-    var the_file = e.data.the_file;
-    var hit_list= e.data.hit_list;
-    var chunk = e.data.chunk;
-    var layer = e.data.layer;
-    var transform_values = e.data.transform_values;
-    var start=chunk[0];
-    var end=chunk[1];
-    var blob=0;
-    // Read each file synchronously as an ArrayBuffer and
-
-
-
-    var reader = new FileReaderSync();
-
-    parse_binary(new Uint8Array(reader.readAsArrayBuffer(the_file.slice(start, end))),hit_list,transform_values,layer);
-
-    delete blob;
-    self.close;
-    }, false);
-*/
-
-module.exports = {
-  parse: parse_binary
-}
+module.exports = TWKB;
