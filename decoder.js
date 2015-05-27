@@ -18,7 +18,6 @@ var TWKB =
 		else
 			ta_struct.cursor = 0;
 		ta_struct.include_bbox=options.include_bbox;
-		var n = 0;
 		while(ta_struct.cursor<the_length)
 		{	
 			var res = TWKB.readBuffer(ta_struct)
