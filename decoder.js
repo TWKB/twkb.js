@@ -173,6 +173,13 @@ TWKB.prototype = {
         throw new Error("unknow type: " + typ);
       }
       res.ndims = ta_struct.ndims;
+      if (ta_struct.has_bbox) {
+        res.bbox = ta_struct.bbox;
+      }
+      
+      if(ta_struct.has_size) {
+        res.size = ta_struct.size;
+      }
       return res;
   },
 
