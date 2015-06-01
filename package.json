@@ -16,14 +16,24 @@
      "name" : "Javi Santana",
      "email" : "jsantana@cartodb.com",
      "url" : "http://javisantana.com"
+    }, {
+     "name" : "Björn Harrtell",
+     "email" : "bjorn@wololo.org"
+    }, {
+     "name" : "Nicklass Aven",
+     "email" : "nicklas.aven@jordogskog.no"
     }
   ],
   "main": "index.js",
   "dependencies": {},
   "scripts": {
+    "start": "watchify decoder.js --outfile bundle.js",
+    "build": "browserify index.js | uglifyjs --compress --output bundle.js"
   },
   "devDependencies": {
-    "browserify": "3.23.1"
+    "browserify": "10.2.1",
+    "uglify-js": "2.4.23",
+    "watchify": "3.2.1"
   },
   "optionalDependencies": {},
   "engines": {
