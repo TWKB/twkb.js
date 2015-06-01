@@ -277,6 +277,8 @@ TWKB.prototype = {
   }
 }
 
+module.exports = TWKB;
+
 
 
 
