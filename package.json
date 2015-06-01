@@ -12,26 +12,31 @@
     "type": "git",
     "url": ""
   },
-  "contributors": [{
-     "name" : "Javi Santana",
-     "email" : "jsantana@cartodb.com",
-     "url" : "http://javisantana.com"
-    }, {
-     "name" : "Björn Harrtell",
-     "email" : "bjorn@wololo.org"
-    }, {
-     "name" : "Nicklass Aven",
-     "email" : "nicklas.aven@jordogskog.no"
+  "contributors": [
+    {
+      "name": "Javi Santana",
+      "email": "jsantana@cartodb.com",
+      "url": "http://javisantana.com"
+    },
+    {
+      "name": "Björn Harrtell",
+      "email": "bjorn@wololo.org"
+    },
+    {
+      "name": "Nicklass Aven",
+      "email": "nicklas.aven@jordogskog.no"
     }
   ],
   "main": "index.js",
   "dependencies": {},
   "scripts": {
     "start": "watchify decoder.js --outfile bundle.js",
-    "build": "browserify index.js | uglifyjs --compress --output bundle.js"
+    "build": "browserify index.js | uglifyjs --compress --output bundle.js",
+    "test": "mocha"
   },
   "devDependencies": {
     "browserify": "10.2.1",
+    "mocha": "^2.2.5",
     "uglify-js": "2.4.23",
     "watchify": "3.2.1"
   },

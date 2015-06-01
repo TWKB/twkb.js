@@ -15,6 +15,10 @@ var MAX_VALUE =  Number.MAX_VALUE
 var MIN_VALUE =  Number.MIN_VALUE
 
 function TWKB(buffer, options) {
+  if (buffer.byteLength === undefined) {
+    throw new Errro("buffer argment must be an ArrayBuffer");
+  }
+  options = options || {};
   var ta_struct = {};
   ta_struct.buffer = buffer;
   ta_struct.cursor = options.startReadingAt || 0;
@@ -23,14 +27,26 @@ function TWKB(buffer, options) {
   this.ta_struct = ta_struct;
 }
 
+TWKB.POINT  =  POINT;
+TWKB.LINESTRING  =  LINESTRING;
+TWKB.POLYGON  =  POLYGON;
+TWKB.MULTIPOINT  = MULTIPOINT;
+TWKB.MULTILINESTRING  =  MULTILINESTRING;
+TWKB.MULTIPOLYGON  =  MULTIPOLYGON;
+TWKB.COLLECTION = COLLECTION;
+
+
+
 TWKB.prototype = {
 
   /**
    * reads new feature
    */
   next: function() {
-    if (!this.eof())
-      return readBuffer(this.ta_struct);
+    if (!this.eof()) {
+      console.log(this.ta_struct.cursor, this.ta_struct.bufferLength);
+      return this.readBuffer(this.ta_struct);
+    }
     return null;
   },
 
@@ -53,9 +69,7 @@ TWKB.prototype = {
 
     while (!this.eof()) {
       var res = this.next();
-      for (var i = 0, len = res.length; i < len; ++i) {
-        geoms.features.push(res[i]);
-      }
+      geoms.features.push(res);
     }
     return geoms;
   },
@@ -70,7 +84,7 @@ TWKB.prototype = {
       ta_struct.cursor++;
 
       var typ = flag & 0x0F;
-      var precision_xy = unzigzag( (flag & 0xF0) >> 4);
+      var precision_xy = this.unzigzag( (flag & 0xF0) >> 4);
       ta_struct.factors = [];
       ta_struct.factors[0] = ta_struct.factors[1] =  Math.pow(10, precision_xy);
 
@@ -112,7 +126,7 @@ TWKB.prototype = {
       // read the total size in bytes
       // The value is the size in bytes of the remainder of the geometry after the size attribute.
       if (ta_struct.has_size) {
-        ta_struct.size = ReadVarInt64(ta_struct);
+        ta_struct.size = this.ReadVarInt64(ta_struct);
       }
 
       // bounding box in the format [xmin, deltax, ymin, deltay, zmin, deltaz]
@@ -139,23 +153,23 @@ TWKB.prototype = {
       // read the geometry
       var res = {}
       if(typ == POINT) {
-        res = parse_point(ta_struct)
+        res = this.parse_point(ta_struct)
       } else if(typ == LINESTRING) {
-        res = parse_line(ta_struct)
+        res = this.parse_line(ta_struct)
       } else if(typ == POLYGON) {
-        res = parse_polygon(ta_struct)
+        res = this.parse_polygon(ta_struct)
       } else if(typ == MULTIPOINT) {
         res.type = MULTIPOINT;
-        res.geoms = parse_multi(ta_struct, parse_point);
+        res.geoms = this.parse_multi(ta_struct, this.parse_point);
       } else if(typ == MULTILINESTRING) {
         res.type = MULTILINESTRING;
-        res.geoms = parse_multi(ta_struct, parse_line);
+        res.geoms = this.parse_multi(ta_struct, this.parse_line);
       } else if(typ == MULTIPOLYGON) {
         res.type = MULTIPOLYGON;
-        res.geoms = parse_multi(ta_struct, parse_polygon);
+        res.geoms = this.parse_multi(ta_struct, this.parse_polygon);
       } else if(typ == COLLECTION) {
         res.type= COLLECTION;
-        res.geoms = parse_multi(ta_struct, readBuffer);
+        res.geoms = this.parse_multi(ta_struct, this.readBuffer);
       } else {
         throw new Error("unknow type: " + typ);
       }
@@ -169,7 +183,7 @@ TWKB.prototype = {
         nByte;
 
     while(true) {
-      nByte = ta_struct.ta[cursor];
+      nByte = ta_struct.buffer[cursor];
       if ((nByte & 0x80) === 0)
       {
         cursor++;
@@ -183,8 +197,8 @@ TWKB.prototype = {
   },
 
   ReadVarSInt64: function(ta_struct) {
-    var nVal = ReadVarInt64(ta_struct);
-    return unzigzag(nVal);
+    var nVal = this.ReadVarInt64(ta_struct);
+    return this.unzigzag(nVal);
   },
 
   unzigzag: function (nVal) {
@@ -204,7 +218,7 @@ TWKB.prototype = {
   parse_line: function (ta_struct) {
     var geom = {};
     geom.type = LINESTRING;
-    var npoints = TWKB.ReadVarInt64(ta_struct);
+    var npoints = this.ReadVarInt64(ta_struct);
     geom.coordinates = this.read_pa(ta_struct, npoints);
     return geom;
   },
@@ -213,7 +227,7 @@ TWKB.prototype = {
     var geom = {};
     geom.type = POLYGON;
     geom.coordinates = [];
-    var nrings = ReadVarInt64(ta_struct);
+    var nrings = this.ReadVarInt64(ta_struct);
     for (var ring = 0; ring < nrings; ++ring) {
       var npoints = this.ReadVarInt64(ta_struct);
       geom.coordinates[ring] = this.read_pa(ta_struct, npoints);
@@ -222,7 +236,7 @@ TWKB.prototype = {
   },
 
   parse_multi: function (ta_struct, parser) {
-    var ngeoms = ReadVarInt64(ta_struct);
+    var ngeoms = this.ReadVarInt64(ta_struct);
     var geoms = [];
     var IDlist = []
     if (ta_struct.has_idlist) {
@@ -247,7 +261,7 @@ TWKB.prototype = {
 
       for (i = 0; i < npoints; i++) {
         for (j = 0; j < ndims; j++) {
-          ta_struct.refpoint[j] += ReadVarSInt64(ta_struct);
+          ta_struct.refpoint[j] += this.ReadVarSInt64(ta_struct);
           coords[j * ndims + i] = ta_struct.refpoint[j]/factors[j];
         }
       }
