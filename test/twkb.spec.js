@@ -12,8 +12,33 @@ function toArrayBuffer(buffer) {
 
 
 describe("TWKB", function() {
-   describe("decode", function() {
 
+   describe("itetarion", function() {
+     it ("eof should return true at the end of the buffer", function() {
+       var t = new TWKB(toArrayBuffer(new Buffer('02000202020808', 'hex')))
+       assert.notEqual(t.next(), null);
+       assert.equal(t.eof(), true);
+     });
+   });
+
+   describe("toGeoJSON", function() {
+       var t = new TWKB(toArrayBuffer(new Buffer('02000202020808', 'hex')))
+       var g = t.toGeoJSON()
+       console.log(g)
+       assert.deepEqual(g, {
+         type: "FeatureCollection",
+         features: [
+            {
+              geometry: {
+                type: 'LineString',
+                coordinates: [[1, 1],[5, 5]]
+              }
+            }
+         ]
+       });
+   });
+
+   describe("decode", function() {
      it("should decode linestring", function(){
        // select encode(ST_AsTWKB('LINESTRING(1 1,5 5)'::geometry), 'hex')
        var t = new TWKB(toArrayBuffer(new Buffer('02000202020808', 'hex')))
@@ -73,5 +98,23 @@ describe("TWKB", function() {
        assert.equal(f.coordinates[0], 1)
        assert.equal(f.coordinates[1], 2)
      });
+
+     it("should decode a multigeom with ids", function() {
+       //select st_astwkb(array_agg(geom::geometry), array_agg(id)) from (select 0 as id, 'POINT(0 1)' as geom union all select 1 as id, 'POINT(2 3)'as geom) a;
+       var t = new TWKB(toArrayBuffer(new Buffer('04070b0004020402000200020404', 'hex')))
+       var f = t.next()
+       assert.equal(f.type, TWKB.MULTIPOINT)
+       assert.equal(f.ndims, 2)
+       assert.deepEqual(f.bbox.min, [0, 1])
+       assert.deepEqual(f.bbox.max, [2, 3])
+       assert.equal(f.geoms.length, 2)
+       assert.equal(f.geoms[0].id, 0)
+       assert.deepEqual(f.geoms[0].coordinates[0], 0);
+       assert.deepEqual(f.geoms[0].coordinates[1], 1);
+       assert.equal(f.geoms[1].id, 1)
+       assert.deepEqual(f.geoms[1].coordinates[0], 2);
+       assert.deepEqual(f.geoms[1].coordinates[1], 3);
+     })
+
    });
 });

@@ -65,9 +65,26 @@ TWKB.prototype = {
       features: []
     };
 
+    function toCoords(f) {
+      var coords = []
+      for (var i = 0, len = f.coordinates.length; i < len; i += f.ndims) {
+        var pos = []
+        for (var c = 0; c < f.ndims; ++c) {
+          pos.push(f.coordinates[i + c])
+        }
+        coords.push(pos);
+      }
+      return coords;
+    }
+
     while (!this.eof()) {
       var res = this.next();
-      geoms.features.push(res);
+      var f = {}
+      if (res.type === LINESTRING) {
+        f.type = "LineString"
+        f.coordinates = toCoords(res);
+      }
+      geoms.features.push({ geometry: f });
     }
     return geoms;
   },
@@ -246,7 +263,7 @@ TWKB.prototype = {
     var geoms = [];
     var IDlist = []
     if (ta_struct.has_idlist) {
-      IDlist = readIDlist(ta_struct, ngeoms);
+      IDlist = this.readIDlist(ta_struct, ngeoms);
     }
     for (var i = 0; i < ngeoms; i++) {
       var geo = parser(ta_struct);
@@ -289,11 +306,11 @@ TWKB.prototype = {
   },
 
   readIDlist: function(ta_struct, n) {
-      var IDlist = [];
+      var idList = [];
       for (var i = 0; i < n; i++) {
-        IDlist.push(ReadVarSInt64(ta_struct));
+        idList.push(this.ReadVarSInt64(ta_struct));
       }
-      return IDlist;
+      return idList;
   }
 }
 
