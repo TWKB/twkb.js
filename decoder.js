@@ -44,7 +44,6 @@ TWKB.prototype = {
    */
   next: function() {
     if (!this.eof()) {
-      console.log(this.ta_struct.cursor, this.ta_struct.bufferLength);
       return this.readBuffer(this.ta_struct);
     }
     return null;
@@ -173,6 +172,7 @@ TWKB.prototype = {
       } else {
         throw new Error("unknow type: " + typ);
       }
+      res.ndims = ta_struct.ndims;
       return res;
   },
 
@@ -262,7 +262,7 @@ TWKB.prototype = {
       for (i = 0; i < npoints; i++) {
         for (j = 0; j < ndims; j++) {
           ta_struct.refpoint[j] += this.ReadVarSInt64(ta_struct);
-          coords[j * ndims + i] = ta_struct.refpoint[j]/factors[j];
+          coords[ndims * i + j] = ta_struct.refpoint[j]/factors[j];
         }
       }
 
