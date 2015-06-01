@@ -99,6 +99,15 @@ describe("TWKB", function() {
        assert.equal(f.coordinates[1], 2)
      });
 
+     it("should decode a polygon with holes", function() {
+       // select encode(ST_AsTWKB('POLYGON((0 0,2 0,2 2, 0 2, 0 0), (0 0, 0 1, 1 1, 1 0, 0 0))'::geometry, 0, 0, 0, true, true), 'hex')
+       var t = new TWKB(toArrayBuffer(new Buffer('03031b000400040205000004000004030000030500000002020000010100', 'hex')))
+       var f = t.next()
+       assert.equal(f.type, TWKB.POLYGON)
+       assert.equal(f.ndims, 2)
+       console.log(f.coordinates.length, 2)
+     });
+
      it("should decode a multigeom with ids", function() {
        //select st_astwkb(array_agg(geom::geometry), array_agg(id)) from (select 0 as id, 'POINT(0 1)' as geom union all select 1 as id, 'POINT(2 3)'as geom) a;
        var t = new TWKB(toArrayBuffer(new Buffer('04070b0004020402000200020404', 'hex')))
