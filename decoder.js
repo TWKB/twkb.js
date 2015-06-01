@@ -16,7 +16,7 @@ var MIN_VALUE =  Number.MIN_VALUE
 
 function TWKB(buffer, options) {
   if (buffer.byteLength === undefined) {
-    throw new Errro("buffer argment must be an ArrayBuffer");
+    throw new Error("buffer argment must be an ArrayBuffer");
   }
   options = options || {};
   var ta_struct = {};
@@ -27,6 +27,7 @@ function TWKB(buffer, options) {
   this.ta_struct = ta_struct;
 }
 
+// constants
 TWKB.POINT  =  POINT;
 TWKB.LINESTRING  =  LINESTRING;
 TWKB.POLYGON  =  POLYGON;
@@ -35,12 +36,10 @@ TWKB.MULTILINESTRING  =  MULTILINESTRING;
 TWKB.MULTIPOLYGON  =  MULTIPOLYGON;
 TWKB.COLLECTION = COLLECTION;
 
-
-
 TWKB.prototype = {
 
   /**
-   * reads new feature
+   * reads new feature or a group of them
    */
   next: function() {
     if (!this.eof()) {
@@ -159,16 +158,16 @@ TWKB.prototype = {
         res = this.parse_polygon(ta_struct)
       } else if(typ == MULTIPOINT) {
         res.type = MULTIPOINT;
-        res.geoms = this.parse_multi(ta_struct, this.parse_point);
+        res.geoms = this.parse_multi(ta_struct, this.parse_point.bind(this));
       } else if(typ == MULTILINESTRING) {
         res.type = MULTILINESTRING;
-        res.geoms = this.parse_multi(ta_struct, this.parse_line);
+        res.geoms = this.parse_multi(ta_struct, this.parse_line.bind(this));
       } else if(typ == MULTIPOLYGON) {
         res.type = MULTIPOLYGON;
-        res.geoms = this.parse_multi(ta_struct, this.parse_polygon);
+        res.geoms = this.parse_multi(ta_struct, this.parse_polygon.bind(this));
       } else if(typ == COLLECTION) {
         res.type= COLLECTION;
-        res.geoms = this.parse_multi(ta_struct, this.readBuffer);
+        res.geoms = this.parse_multi(ta_struct, this.readBuffer.bind(this));
       } else {
         throw new Error("unknow type: " + typ);
       }
@@ -176,7 +175,7 @@ TWKB.prototype = {
       if (ta_struct.has_bbox) {
         res.bbox = ta_struct.bbox;
       }
-      
+
       if(ta_struct.has_size) {
         res.size = ta_struct.size;
       }
