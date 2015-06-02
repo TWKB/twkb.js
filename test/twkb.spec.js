@@ -29,6 +29,7 @@ describe("TWKB", function() {
          type: "FeatureCollection",
          features: [
             {
+              type: 'Feature',
               geometry: {
                 type: 'LineString',
                 coordinates: [[1, 1],[5, 5]]
