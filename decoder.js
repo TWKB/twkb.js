@@ -84,7 +84,7 @@ TWKB.prototype = {
         f.type = "LineString"
         f.coordinates = toCoords(res);
       }
-      geoms.features.push({ geometry: f });
+      geoms.features.push({ type: "Feature", geometry: f });
     }
     return geoms;
   },
