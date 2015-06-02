@@ -14,6 +14,53 @@ var COLLECTION = 7;
 var MAX_VALUE =  Number.MAX_VALUE
 var MIN_VALUE =  Number.MIN_VALUE
 
+function Feature(ta_struct, twkb) {
+  this.ta_struct = {
+    cursor: ta_struct.cursor,
+    ndims: ta_struct.ndims,
+    bbox: ta_struct.bbox,
+    factors: ta_struct.factors,
+    type: ta_struct.type
+  };
+  this._coordinates = null;
+  this._ids = null;
+  this._features = null;
+  this._twkb = twkb;
+}
+
+Feature.prototype = {
+
+  type: function() {
+    return this.ta_struct.type;
+  },
+
+  ndims: function() {
+    return this.ta_struct.ndims;
+  },
+
+  bbox: function() {
+    return this.ta_struct.bbox;
+  },
+
+  coordinates: function() {
+    return this._coordinates;
+  },
+
+  ids: function() {
+    return this._ids;
+  },
+
+  features: function() {
+    return this._features;
+  },
+
+  read: function() {
+    this._twkb.setState(this.ta_struct);
+    this._twkb.readFeature(this);
+  }
+
+};
+
 function TWKB(buffer, options) {
   if (buffer.byteLength === undefined) {
     throw new Error("buffer argment must be an ArrayBuffer");
@@ -24,6 +71,7 @@ function TWKB(buffer, options) {
   ta_struct.cursor = options.startReadingAt || 0;
   ta_struct.include_bbox = !!options.include_bbox;
   ta_struct.bufferLength = buffer.byteLength;
+  ta_struct.refpoint = new Int32Array(4 /* max dims */);
   this.ta_struct = ta_struct;
 }
 
@@ -65,12 +113,12 @@ TWKB.prototype = {
       features: []
     };
 
-    function toCoords(f) {
+    function toCoords(coordinates, ndims) {
       var coords = []
-      for (var i = 0, len = f.coordinates.length; i < len; i += f.ndims) {
+      for (var i = 0, len = coordinates.length; i < len; i += ndims) {
         var pos = []
-        for (var c = 0; c < f.ndims; ++c) {
-          pos.push(f.coordinates[i + c])
+        for (var c = 0; c < ndims; ++c) {
+          pos.push(coordinates[i + c])
         }
         coords.push(pos);
       }
@@ -80,9 +128,23 @@ TWKB.prototype = {
     while (!this.eof()) {
       var res = this.next();
       var f = {}
-      if (res.type === LINESTRING) {
-        f.type = "LineString"
-        f.coordinates = toCoords(res);
+      switch(res.type()) {
+        case POINT:
+          f.type = "Point"
+          f.coordinates = toCoords(res.coordinates(), res.ndims())[0];
+          break;
+        case LINESTRING:
+          f.type = "LineString"
+          f.coordinates = toCoords(res.coordinates(), res.ndims());
+          break;
+        case POLYGON:
+          f.type = "Polygon"
+          var c = res.coordinates();
+          f.coordinates = []
+          c.forEach(function(c) {
+            f.coordinates.push(toCoords(c, res.ndims()));
+          })
+          break;
       }
       geoms.features.push({ geometry: f });
     }
@@ -98,8 +160,8 @@ TWKB.prototype = {
       flag = ta_struct.buffer[ta_struct.cursor];
       ta_struct.cursor++;
 
-      var typ = flag & 0x0F;
       var precision_xy = this.unzigzag( (flag & 0xF0) >> 4);
+      ta_struct.type = flag & 0x0F;
       ta_struct.factors = [];
       ta_struct.factors[0] = ta_struct.factors[1] =  Math.pow(10, precision_xy);
 
@@ -158,45 +220,55 @@ TWKB.prototype = {
         ta_struct.bbox.max = [MIN_VALUE,MIN_VALUE,MIN_VALUE,MIN_VALUE];
       }
 
-      // TWKB variable will carry the last refpoint in a pointarray to the next pointarray. It will hold one value per dimmension
-      var buffer = new ArrayBuffer(4*ta_struct.ndims);
-      ta_struct.refpoint = new Int32Array(buffer);
-      for (var i = 0; i < ta_struct.ndims; i++) {
-          ta_struct.refpoint[i] = 0;
-      }
+      var g = new Feature(ta_struct, this)
+      g.read();
+      return g;
 
-      // read the geometry
-      var res = {}
-      if(typ == POINT) {
-        res = this.parse_point(ta_struct)
-      } else if(typ == LINESTRING) {
-        res = this.parse_line(ta_struct)
-      } else if(typ == POLYGON) {
-        res = this.parse_polygon(ta_struct)
-      } else if(typ == MULTIPOINT) {
-        res.type = MULTIPOINT;
-        res.geoms = this.parse_multi(ta_struct, this.parse_point.bind(this));
-      } else if(typ == MULTILINESTRING) {
-        res.type = MULTILINESTRING;
-        res.geoms = this.parse_multi(ta_struct, this.parse_line.bind(this));
-      } else if(typ == MULTIPOLYGON) {
-        res.type = MULTIPOLYGON;
-        res.geoms = this.parse_multi(ta_struct, this.parse_polygon.bind(this));
-      } else if(typ == COLLECTION) {
-        res.type= COLLECTION;
-        res.geoms = this.parse_multi(ta_struct, this.readBuffer.bind(this));
-      } else {
-        throw new Error("unknow type: " + typ);
-      }
-      res.ndims = ta_struct.ndims;
-      if (ta_struct.has_bbox) {
-        res.bbox = ta_struct.bbox;
-      }
+  },
 
-      if(ta_struct.has_size) {
-        res.size = ta_struct.size;
-      }
-      return res;
+  setState: function(ta_struct) {
+    this.ta_struct.bbox = ta_struct.bbox
+    this.ta_struct.cursor = ta_struct.cursor;
+    this.ta_struct.ndims = ta_struct.ndims;
+    this.ta_struct.bbox = ta_struct.bbox;
+    this.ta_struct.factors = ta_struct.factors;
+    this.ta_struct.type = ta_struct.typ;
+  },
+
+  readFeature: function(g) {
+    var ta_struct = this.ta_struct;
+    var typ = g.type();
+    // TWKB variable will carry the last refpoint in a pointarray to the next pointarray. It will hold one value per dimmension
+    for (var i = 0; i < ta_struct.ndims; i++) {
+      ta_struct.refpoint[i] = 0;
+    }
+    // read the geometry
+    var res;
+    if(typ === POINT) {
+      g._coordinates = this.parse_point(ta_struct)
+    } else if(typ === LINESTRING) {
+      g._coordinates = this.parse_line(ta_struct)
+    } else if(typ === POLYGON) {
+      g._coordinates = this.parse_polygon(ta_struct)
+    } else if(typ === MULTIPOINT) {
+      res = this.parse_multi(ta_struct, this.parse_point.bind(this));
+      g._coordinates = res.geoms;
+      g._ids = res.ids;
+    } else if(typ === MULTILINESTRING) {
+      res = this.parse_multi(ta_struct, this.parse_line.bind(this));
+      g._coordinates = res.geoms;
+      g._ids = res.ids;
+    } else if(typ === MULTIPOLYGON) {
+      res = this.parse_multi(ta_struct, this.parse_polygon.bind(this));
+      g._coordinates = res.geoms;
+      g._ids = res.ids;
+    } else if(typ === COLLECTION) {
+      res = this.parse_multi(ta_struct, this.readBuffer.bind(this));
+      g._ids = res.ids;
+      g._features = res.geoms;
+    } else {
+      throw new Error("unknow type: " + typ);
+    }
   },
 
   ReadVarInt64: function(ta_struct) {
@@ -226,36 +298,27 @@ TWKB.prototype = {
 
   unzigzag: function (nVal) {
     if ((nVal & 1)  === 0) {
-      return ((nVal) >> 1);
+      return nVal >> 1;
     }
-    return -(nVal >> 1)-1;
+    return -(nVal >> 1) - 1;
   },
 
   parse_point: function (ta_struct) {
-    var geom = {};
-    geom.type = POINT;
-    geom.coordinates = this.read_pa(ta_struct, 1);
-    return geom;
+    return this.read_pa(ta_struct, 1);
   },
 
   parse_line: function (ta_struct) {
-    var geom = {};
-    geom.type = LINESTRING;
     var npoints = this.ReadVarInt64(ta_struct);
-    geom.coordinates = this.read_pa(ta_struct, npoints);
-    return geom;
+    return this.read_pa(ta_struct, npoints);
   },
 
   parse_polygon: function (ta_struct) {
-    var geom = {};
-    geom.type = POLYGON;
-    geom.coordinates = [];
+    var coordinates = [];
     var nrings = this.ReadVarInt64(ta_struct);
     for (var ring = 0; ring < nrings; ++ring) {
-      var npoints = this.ReadVarInt64(ta_struct);
-      geom.coordinates[ring] = this.read_pa(ta_struct, npoints);
+      coordinates[ring] = this.parse_line(ta_struct);
     }
-    return geom;
+    return coordinates;
   },
 
   parse_multi: function (ta_struct, parser) {
@@ -267,12 +330,12 @@ TWKB.prototype = {
     }
     for (var i = 0; i < ngeoms; i++) {
       var geo = parser(ta_struct);
-      if (ta_struct.has_idlist) {
-        geo.id = IDlist[i];
-      }
       geoms.push(geo);
     }
-    return geoms;
+    return {
+      ids: IDlist,
+      geoms: geoms
+    }
   },
 
   read_pa: function(ta_struct, npoints) {
@@ -289,6 +352,7 @@ TWKB.prototype = {
         }
       }
 
+      // calculates the bbox if it hasn't it
       if(ta_struct.include_bbox && !ta_struct.has_bbox) {
         for (i = 0; i < npoints; i++) {
           for (j = 0; j < ndims; j++) { 
