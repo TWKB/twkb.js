@@ -35,8 +35,8 @@
     "test": "mocha"
   },
   "devDependencies": {
-    "browserify": "10.2.1",
-    "mocha": "^2.2.5",
+    "browserify": "10.2.3",
+    "mocha": "2.2.5",
     "uglify-js": "2.4.23",
     "watchify": "3.2.1"
   },
