@@ -47,16 +47,25 @@ get('file.twkb', function(data) {
 })
 ```
 
-## API
+# API
+
+## TWKB 
+
+### TWKB(buffer)
+
+creates a new TWKB decoder
 
 ### toGeoJSON()
 
-returns valid geojson for the feature
+returns valid geojson for the features
 
 ### next() -> Feature
 reads next feature, see ``Feature``
 
-### Feature
+### forEach(callback)
+calls callback for each feature
+
+## Feature
 
 ### Feature.coordinates() -> Array
 array of coordinates with format [x,y,z, x,y,z ...]. If ``type`` is a polygon this is an array of
