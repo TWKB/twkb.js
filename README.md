@@ -53,23 +53,28 @@ get('file.twkb', function(data) {
 
 returns valid geojson for the feature
 
-### next() -> Feature | FeatureGroup
+### next() -> Feature
 reads next feature, see ``Feature``
 
 ### Feature
-it's a an object with the following attributes
 
-- ``coordinates``: array of coordinates with format [x,y,z, x,y,z ...]. If ``type`` is a polygon
-  this is an array of coordinates for external an internal ring. As general rule this array follows
-  the same rules that ``coordinates`` in geojson geometry
-- ``bbox``: geometry bounding box in format ``{ min: [minx, miny, minz], max: [maxx, maxy, maxz] }``
-- ``size``: size in bytes (see TWKB standarnd)
-- ``ndims``: dimensions, 2 for XY, 3 for XYZ
-- ``type``: one of the following: TWKB.POINT, TWKB.LINESTRING ...
+### Feature.coordinates() -> Array
+array of coordinates with format [x,y,z, x,y,z ...]. If ``type`` is a polygon this is an array of
+arrays. As general rule this array follows the same rules that ``coordinates`` in geojson geometry
 
-### FeatureGroup
-Same than feature but instead of having ``coordinates`` it constains a ``geoms`` array with
-``Feature`` instances
+### Feature.bbox() -> Object 
+geometry bounding box in format ``{ min: [minx, miny, minz], max: [maxx, maxy, maxz] }``
+
+### Feature.ndims() -> int
+dimensions, 2 for XY, 3 for XYZ
+
+### Feature.type() -> int
+one of the following: TWKB.POINT, TWKB.LINESTRING ...
+
+### Feature.features() -> Feature Array
+
+then ``type()`` is TWKB.COLLECTION this method returns a ``Feature`` Array with the features within the group
+
 
 
 
