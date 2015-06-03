@@ -86,6 +86,12 @@ TWKB.COLLECTION = COLLECTION;
 
 TWKB.prototype = {
 
+  forEach: function(callback) {
+    while (!this.eof()) {
+      callback(this.readBuffer(this.ta_struct));
+    }
+  },
+
   /**
    * reads new feature or a group of them
    */

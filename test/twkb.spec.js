@@ -20,6 +20,17 @@ var FULL_BBOX = {
 
 describe("TWKB", function() {
 
+   describe("forEach", function() {
+     it ("should iterate thorugh all the features", function() {
+       var t = new TWKB(toArrayBuffer(new Buffer('0200020202080802000202020808', 'hex')))
+       var features = []
+       t.forEach(function(f) {
+         features.push(f)
+       });
+       assert.equal(features.length, 2);
+     });
+   });
+
    describe("itetarion", function() {
      it ("eof should return true at the end of the buffer", function() {
        var t = new TWKB(toArrayBuffer(new Buffer('02000202020808', 'hex')))
@@ -37,6 +48,7 @@ describe("TWKB", function() {
          type: "FeatureCollection",
          features: [
             {
+              type: 'Feature',
               geometry: {
                 type: 'Point',
                 coordinates: [1, 2]
@@ -71,6 +83,7 @@ describe("TWKB", function() {
          type: "FeatureCollection",
          features: [
             {
+              type: 'Feature',
               geometry: {
                 type: 'Polygon',
                 coordinates: [[[0,0],[2,0],[2,2],[0,2],[0,0]],[[0,0],[0,1],[1,1],[1,0],[0,0]]]
@@ -148,7 +161,6 @@ describe("TWKB", function() {
        var f = t.next()
        assert.equal(f.type(), TWKB.POLYGON)
        assert.equal(f.ndims(), 2)
-       console.log(f.coordinates().length, 2)
      });
 
      it("should decode a multigeom with ids", function() {
@@ -168,6 +180,17 @@ describe("TWKB", function() {
        assert.deepEqual(f.geoms[1].coordinates[1], 3);
        */
      })
+
+     it("should decode a collection", function() {
+       // select st_astwkb(array_agg(geom::geometry), array_agg(id)) from (select 0 as id, 'POINT(0 1)' as geom union all select 1 as id, 'LINESTRING(4 5, 6 7)' as geom) a;
+       var t = new TWKB(toArrayBuffer(new Buffer('070402000201000002020002080a0404', 'hex')))
+       var f = t.next()
+       assert.equal(f.type(), TWKB.COLLECTION)
+       assert.equal(f.features().length, 2);
+       assert.equal(f.features()[0].type(), TWKB.POINT);
+       assert.equal(f.features()[1].type(), TWKB.LINESTRING);
+
+     });
 
    });
 });
