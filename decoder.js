@@ -146,7 +146,7 @@ TWKB.prototype = {
           })
           break;
       }
-      geoms.features.push({ geometry: f });
+      geoms.features.push({ type: "Feature", geometry: f });
     }
     return geoms;
   },
