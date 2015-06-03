@@ -24,7 +24,7 @@ function Feature(ta_struct, twkb) {
   };
   this._coordinates = null;
   this._ids = null;
-  this._features = null;
+  this._features = [];
   this._twkb = twkb;
 }
 

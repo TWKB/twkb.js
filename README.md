@@ -80,10 +80,17 @@ dimensions, 2 for XY, 3 for XYZ
 ### Feature.type() -> int
 one of the following: TWKB.POINT, TWKB.LINESTRING ...
 
+### Feature.ids() -> int Array
+when the geometry contains ids this method returns an array of id, one for each sub feature.
+returns ``null`` if the feature does not contain ids.
+
+NOTE: only multi geometries contain ids so for ``TWKB.POINT``, 
+``TWKB.LINESTRING``, ``TWKB.POLYGON`` it allways returns ``null``
+
 ### Feature.features() -> Feature Array
 
-then ``type()`` is TWKB.COLLECTION this method returns a ``Feature`` Array with the features within the group
-
+then ``type()`` is ``TWKB.COLLECTION`` this method returns a ``Feature`` Array with the features
+within the group, an empty array otherwise
 
 
 
