@@ -6,7 +6,7 @@
   },
   "name": "twkb",
   "description": "TWKB format reader",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "homepage": "",
   "repository": {
     "type": "git",
@@ -30,8 +30,8 @@
   "main": "index.js",
   "dependencies": {},
   "scripts": {
-    "start": "watchify decoder.js --outfile build/twkb.js",
-    "build": "browserify index.js | uglifyjs --compress --output dist/twkb.min.js",
+    "start": "watchify src/twkb.js --outfile build/twkb.js",
+    "build": "browserify src/twkb.js | uglifyjs --compress --output dist/twkb.min.js",
     "test": "mocha"
   },
   "devDependencies": {
