@@ -97,7 +97,7 @@ function readGeometry(ta_struct) {
   } else if(type === constants.MULTIPOLYGON) {
     res = parse_multi(ta_struct, parse_polygon);
   } else if(type === constants.COLLECTION) {
-    res = parse_multi(ta_struct, readBuffer);
+    res = parse_collection(ta_struct, readBuffer);
   } else {
     throw new Error("Unknown type: " + type);
   }
@@ -132,10 +132,32 @@ function parse_multi(ta_struct, parser) {
   }
   for (var i = 0; i < ngeoms; i++) {
     var geo = parser(ta_struct);
-    //console.log(ta_struct);
     geoms.push(geo);
   }
   return {
+    ids: IDlist,
+    geoms: geoms
+  }
+}
+
+// TODO: share code with parse_multi
+function parse_collection(ta_struct) {
+  var ngeoms = ReadVarInt64(ta_struct);
+  var geoms = [];
+  var IDlist = []
+  if (ta_struct.has_idlist) {
+    IDlist = readIDlist(ta_struct, ngeoms);
+  }
+  for (var i = 0; i < ngeoms; i++) {
+    var geo = readBuffer(ta_struct);
+    geoms.push({
+      type: ta_struct.type,
+      ndims: ta_struct.ndims,
+      coordinates: geo
+    });
+  }
+  return {
+    collection: true,
     ids: IDlist,
     geoms: geoms
   }

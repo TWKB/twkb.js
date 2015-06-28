@@ -95,7 +95,7 @@ describe("twkb", function() {
        });
      })
      
-     /*it("should decode collection to geojson", function() {
+     it("should decode collection to geojson", function() {
        var g = twkb.toGeoJSON(toArrayBuffer(new Buffer('070402000201000002020002080a0404', 'hex')))
        assert.deepEqual(g, {
          type: "FeatureCollection",
@@ -112,13 +112,13 @@ describe("twkb", function() {
               type: 'Feature',
               id: 1,
               geometry: {
-                type: 'Point',
-                coordinates: [2,3]
+                type: 'LineString',
+                coordinates: [[4,5],[6,7]]
               }
             }
          ]
        });
-     })*/
+     })
      
      it ("should read multiple features", function() {
        var g = new twkb.toGeoJSON(toArrayBuffer(new Buffer('0200020202080802000202020808', 'hex')))

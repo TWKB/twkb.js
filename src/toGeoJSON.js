@@ -53,9 +53,6 @@ transforms[constants.MULTILINESTRING] = function(geoms, ids, ndims) {
 transforms[constants.MULTIPOLYGON] = function(geoms, ids, ndims) {
   return createFeatures(constants.POLYGON, geoms, ids, ndims);
 };
-transforms[constants.COLLECTION] = function(ta_struct) {
-  console.log(ta_struct);
-};
 
 // TWKB Float32Array coordinates to GeoJSON coordinates
 function toCoords(coordinates, ndims) {
@@ -87,8 +84,16 @@ function toGeoJSON(buffer, startOffset, howMany) {
   var features = [];
   while (ta_struct.cursor < ta_struct.bufferLength) {
     var res = readBuffer(ta_struct);
-    //console.log(ta_struct);
-    if (res.geoms) {
+    // TODO: these conditionals could be better
+    if (res.collection) {
+      res.geoms.forEach(function(g, i) {
+        features.push({
+          type: "Feature",
+          id: res.ids[i],
+          geometry: transforms[g.type](g.coordinates, g.ndims)
+        });
+      });
+    } else if (res.geoms) {
       features = features.concat(transforms[ta_struct.type](res.geoms, res.ids, ta_struct.ndims));
     } else {
       features.push({ type: "Feature", geometry: transforms[ta_struct.type](res, ta_struct.ndims) });
