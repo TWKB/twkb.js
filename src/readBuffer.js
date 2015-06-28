@@ -89,13 +89,16 @@ function readGeometry(ta_struct) {
     ta_struct.res = parse_line(ta_struct)
   } else if(type === constants.POLYGON) {
     ta_struct.res = parse_polygon(ta_struct)
-  } else if(type === MULTILINESTRING) {
+  } else if(type === constants.MULTIPOINT) {
+    ta_struct.res = parse_multi(ta_struct, parse_point);
+    //g._ids = res.ids;
+  } else if(type === constants.MULTILINESTRING) {
     ta_struct.res = parse_multi(ta_struct, parse_line);
     //g._ids = res.ids;
-  } else if(type === MULTIPOLYGON) {
+  } else if(type === constants.MULTIPOLYGON) {
     ta_struct.res = parse_multi(ta_struct, parse_polygon);
     //g._ids = res.ids;
-  } else if(type === COLLECTION) {
+  } else if(type === constants.COLLECTION) {
     ta_struct.res = parse_multi(ta_struct, readBuffer);
     //g._ids = res.ids;
     //g._features = res.geoms;

@@ -19,19 +19,29 @@ module.exports = function(buffer, startOffset, howMany) {
       case constants.POINT:
         geometry.type = "Point";
         geometry.coordinates = toCoords(ta_struct.res, ta_struct.ndims)[0];
+        features.push({ type: "Feature", geometry: geometry });
         break;
       case constants.LINESTRING:
         geometry.type = "LineString";
         geometry.coordinates = toCoords(ta_struct.res, ta_struct.ndims);
+        features.push({ type: "Feature", geometry: geometry });
         break;
       case constants.POLYGON:
         geometry.type = "Polygon";
-        geometry.coordinates = ta_struct.res.map(function(e) {
-          return toCoords(e, ta_struct.ndims);
-        })
+        geometry.coordinates = ta_struct.res.map(function(c) {
+          return toCoords(c, ta_struct.ndims);
+        });
+        features.push({ type: "Feature", geometry: geometry });
+        break;
+      case constants.MULTIPOINT:
+        ta_struct.res.geoms.forEach(function(g, i) {
+          var geometry = {};
+          geometry.type = "Point";
+          geometry.coordinates = toCoords(g, ta_struct.ndims)[0];
+          features.push({ type: "Feature", id: ta_struct.res.ids[i], geometry: geometry });
+        });
         break;
     }
-    features.push({ type: "Feature", geometry: geometry });
   }
   
   return {

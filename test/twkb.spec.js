@@ -70,6 +70,31 @@ describe("twkb", function() {
        });
      })
      
+     it("should decode multigeom with ids to geojson", function() {
+       var g = twkb.toGeoJSON(toArrayBuffer(new Buffer('04070b0004020402000200020404', 'hex')))
+       assert.deepEqual(g, {
+         type: "FeatureCollection",
+         features: [
+            {
+              type: 'Feature',
+              id: 0,
+              geometry: {
+                type: 'Point',
+                coordinates: [0,1]
+              }
+            },
+            {
+              type: 'Feature',
+              id: 1,
+              geometry: {
+                type: 'Point',
+                coordinates: [2,3]
+              }
+            }
+         ]
+       });
+     })
+     
      it ("should read multiple features", function() {
        var g = new twkb.toGeoJSON(toArrayBuffer(new Buffer('0200020202080802000202020808', 'hex')))
        assert.equal(g.features.length, 2);
