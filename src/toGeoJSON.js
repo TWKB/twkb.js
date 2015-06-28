@@ -44,13 +44,13 @@ module.exports = function(buffer, startOffset, howMany) {
 
 
 var toCoords = function(coordinates, ndims) {
-    var coords = []
-    for (var i = 0, len = coordinates.length; i < len; i += ndims) {
-      var pos = []
-      for (var c = 0; c < ndims; ++c) {
-        pos.push(coordinates[i + c])
-      }
-      coords.push(pos);
+  var coords = []
+  for (var i = 0, len = coordinates.length; i < len; i += ndims) {
+    var pos = []
+    for (var c = 0; c < ndims; ++c) {
+      pos.push(coordinates[i + c])
     }
-    return coords;
+    coords.push(pos);
   }
+  return coords;
+}
