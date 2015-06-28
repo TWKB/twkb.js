@@ -1,12 +1,12 @@
 var constants = require('./constants');
 var readBuffer = require('./readBuffer');
 var eof = require('./readBuffer');
-
 var typeMap = {};
 typeMap[constants.POINT] = 'Point';
 typeMap[constants.LINESTRING] = 'LineString';
 typeMap[constants.POLYGON] = 'Polygon';
 
+// Create GeoJSON Geometry object from TWKB type and coordinate array
 function createGeometry(type, coordinates) {
   return {
     type: typeMap[type],
@@ -14,6 +14,7 @@ function createGeometry(type, coordinates) {
   };
 };
 
+// Create GeoJSON Feature object (intended for TWKB multi-types)
 function createFeature(type, ta_struct, g, i) {
   return {
     type: "Feature",
@@ -22,13 +23,15 @@ function createFeature(type, ta_struct, g, i) {
   };
 };
 
-function createMultiTransform(type, ta_struct) {
+// Create an array of GeoJSON feature objects
+function createFeatures(type, ta_struct) {
   // TODO: consider howMany
   return ta_struct.res.geoms.map(function(g, i) {
     return createFeature(type, ta_struct, g, i);
   });
 };
 
+// Functions that map from TWKB type to GeoJSON object
 var transforms = {};
 transforms[constants.POINT] = function(ta_struct) {
   return createGeometry(constants.POINT, toCoords(ta_struct.res, ta_struct.ndims)[0]);
@@ -42,15 +45,16 @@ transforms[constants.POLYGON] = function(ta_struct) {
   }));
 };
 transforms[constants.MULTIPOINT] = function(ta_struct) {
-  return createMultiTransform(constants.POINT, ta_struct);
+  return createFeatures(constants.POINT, ta_struct);
 };
 transforms[constants.MULTILINESTRING] = function(ta_struct) {
-  return createMultiTransform(constants.LINESTRING, ta_struct);
+  return createFeatures(constants.LINESTRING, ta_struct);
 };
 transforms[constants.MULTIPOLYGON] = function(ta_struct) {
-  return createMultiTransform(constants.POLYGON, ta_struct);
+  return createFeatures(constants.POLYGON, ta_struct);
 };
 
+// TWKB Float32Array coordinates to GeoJSON coordinates
 function toCoords(coordinates, ndims) {
   var coords = []
   for (var i = 0, len = coordinates.length; i < len; i += ndims) {
