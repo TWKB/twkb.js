@@ -17,19 +17,17 @@ module.exports = function(buffer, startOffset, howMany) {
     var geometry = {};
     switch(ta_struct.type) {
       case constants.POINT:
-        geometry.type = "Point"
+        geometry.type = "Point";
         geometry.coordinates = toCoords(ta_struct.res, ta_struct.ndims)[0];
         break;
       case constants.LINESTRING:
-        geometry.type = "LineString"
+        geometry.type = "LineString";
         geometry.coordinates = toCoords(ta_struct.res, ta_struct.ndims);
         break;
       case constants.POLYGON:
-        geometry.type = "Polygon"
-        var c = ta_struct.res;
-        geometry.coordinates = [];
-        c.forEach(function(c) {
-          geometry.coordinates.push(toCoords(c, ta_struct.ndims));
+        geometry.type = "Polygon";
+        geometry.coordinates = ta_struct.res.map(function(e) {
+          return toCoords(e, ta_struct.ndims);
         })
         break;
     }
