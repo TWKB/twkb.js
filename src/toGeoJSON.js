@@ -1,6 +1,6 @@
 var constants = require('./constants');
 var readBuffer = require('./readBuffer');
-var eof = require('./readBuffer');
+
 var typeMap = {};
 typeMap[constants.POINT] = 'Point';
 typeMap[constants.LINESTRING] = 'LineString';
@@ -15,43 +15,46 @@ function createGeometry(type, coordinates) {
 };
 
 // Create GeoJSON Feature object (intended for TWKB multi-types)
-function createFeature(type, ta_struct, g, i) {
+function createFeature(type, coordinates, id, ndims) {
   return {
     type: "Feature",
-    id: ta_struct.has_idlist ? ta_struct.res.ids[i] : undefined,
-    geometry: transforms[type]({res: g, ndims: ta_struct.ndims})
+    id: id,
+    geometry: transforms[type](coordinates, ndims)
   };
 };
 
 // Create an array of GeoJSON feature objects
-function createFeatures(type, ta_struct) {
+function createFeatures(type, geoms, ids, ndims) {
   // TODO: consider howMany
-  return ta_struct.res.geoms.map(function(g, i) {
-    return createFeature(type, ta_struct, g, i);
+  return geoms.map(function(g, i) {
+    return createFeature(type, g, ids ? ids[i] : undefined, ndims);
   });
 };
 
-// Functions that map from TWKB type to GeoJSON object
+// Functions that map from intermediate representation to GeoJSON object
 var transforms = {};
-transforms[constants.POINT] = function(ta_struct) {
-  return createGeometry(constants.POINT, toCoords(ta_struct.res, ta_struct.ndims)[0]);
+transforms[constants.POINT] = function(coordinates, ndims) {
+  return createGeometry(constants.POINT, toCoords(coordinates, ndims)[0]);
 };
-transforms[constants.LINESTRING] = function(ta_struct) {
-  return createGeometry(constants.LINESTRING, toCoords(ta_struct.res, ta_struct.ndims));
+transforms[constants.LINESTRING] = function(coordinates, ndims) {
+  return createGeometry(constants.LINESTRING, toCoords(coordinates, ndims));
 };
-transforms[constants.POLYGON] = function(ta_struct) {
-  return createGeometry(constants.POLYGON, ta_struct.res.map(function(c) {
-    return toCoords(c, ta_struct.ndims);
+transforms[constants.POLYGON] = function(coordinates, ndims) {
+  return createGeometry(constants.POLYGON, coordinates.map(function(c) {
+    return toCoords(c, ndims);
   }));
 };
-transforms[constants.MULTIPOINT] = function(ta_struct) {
-  return createFeatures(constants.POINT, ta_struct);
+transforms[constants.MULTIPOINT] = function(geoms, ids, ndims) {
+  return createFeatures(constants.POINT, geoms, ids, ndims);
 };
-transforms[constants.MULTILINESTRING] = function(ta_struct) {
-  return createFeatures(constants.LINESTRING, ta_struct);
+transforms[constants.MULTILINESTRING] = function(geoms, ids, ndims) {
+  return createFeatures(constants.LINESTRING, geoms, ids, ndims);
 };
-transforms[constants.MULTIPOLYGON] = function(ta_struct) {
-  return createFeatures(constants.POLYGON, ta_struct);
+transforms[constants.MULTIPOLYGON] = function(geoms, ids, ndims) {
+  return createFeatures(constants.POLYGON, geoms, ids, ndims);
+};
+transforms[constants.COLLECTION] = function(ta_struct) {
+  console.log(ta_struct);
 };
 
 // TWKB Float32Array coordinates to GeoJSON coordinates
@@ -83,11 +86,12 @@ function toGeoJSON(buffer, startOffset, howMany) {
     
   var features = [];
   while (ta_struct.cursor < ta_struct.bufferLength) {
-    readBuffer(ta_struct);
-    if (ta_struct.res.geoms) {
-      features = features.concat(transforms[ta_struct.type](ta_struct));
+    var res = readBuffer(ta_struct);
+    //console.log(ta_struct);
+    if (res.geoms) {
+      features = features.concat(transforms[ta_struct.type](res.geoms, res.ids, ta_struct.ndims));
     } else {
-      features.push({ type: "Feature", geometry: transforms[ta_struct.type](ta_struct) });
+      features.push({ type: "Feature", geometry: transforms[ta_struct.type](res, ta_struct.ndims) });
     }
   }
   

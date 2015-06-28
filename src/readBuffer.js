@@ -73,7 +73,7 @@ function readBuffer(ta_struct) {
     ta_struct.bbox.max = [constants.MIN_VALUE,constants.MIN_VALUE,constants.MIN_VALUE,constants.MIN_VALUE];
   }
 
-  readGeometry(ta_struct);
+  return readGeometry(ta_struct);
 }
 
 function readGeometry(ta_struct) {
@@ -83,28 +83,26 @@ function readGeometry(ta_struct) {
     ta_struct.refpoint[i] = 0;
   }
   // read the geometry
+  var res;
   if (type === constants.POINT) {
-    ta_struct.res = parse_point(ta_struct)
+    res = parse_point(ta_struct)
   } else if(type === constants.LINESTRING) {
-    ta_struct.res = parse_line(ta_struct)
+    res = parse_line(ta_struct)
   } else if(type === constants.POLYGON) {
-    ta_struct.res = parse_polygon(ta_struct)
+    res = parse_polygon(ta_struct)
   } else if(type === constants.MULTIPOINT) {
-    ta_struct.res = parse_multi(ta_struct, parse_point);
-    //g._ids = res.ids;
+    res = parse_multi(ta_struct, parse_point);
   } else if(type === constants.MULTILINESTRING) {
-    ta_struct.res = parse_multi(ta_struct, parse_line);
-    //g._ids = res.ids;
+    res = parse_multi(ta_struct, parse_line);
   } else if(type === constants.MULTIPOLYGON) {
-    ta_struct.res = parse_multi(ta_struct, parse_polygon);
-    //g._ids = res.ids;
+    res = parse_multi(ta_struct, parse_polygon);
   } else if(type === constants.COLLECTION) {
-    ta_struct.res = parse_multi(ta_struct, readBuffer);
-    //g._ids = res.ids;
-    //g._features = res.geoms;
+    res = parse_multi(ta_struct, readBuffer);
   } else {
     throw new Error("Unknown type: " + type);
   }
+  
+  return res;
 }
 
 function parse_point(ta_struct) {
@@ -134,6 +132,7 @@ function parse_multi(ta_struct, parser) {
   }
   for (var i = 0; i < ngeoms; i++) {
     var geo = parser(ta_struct);
+    //console.log(ta_struct);
     geoms.push(geo);
   }
   return {
