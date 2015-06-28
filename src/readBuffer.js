@@ -4,7 +4,7 @@ var ReadVarInt64 = require('./protobuf').ReadVarInt64;
 var ReadVarSInt64 = require('./protobuf').ReadVarSInt64;
 var unzigzag = require('./protobuf').unzigzag;
 
-function readBuffer(ta_struct) {
+function readBuffer(ta_struct, howMany) {
   var flag;
   var has_z = 0;
   var has_m = 0;
@@ -73,36 +73,34 @@ function readBuffer(ta_struct) {
     ta_struct.bbox.max = [constants.MIN_VALUE,constants.MIN_VALUE,constants.MIN_VALUE,constants.MIN_VALUE];
   }
 
-  return readGeometry(ta_struct);
+  return readObjects(ta_struct, howMany);
 }
 
-function readGeometry(ta_struct) {
+function readObjects(ta_struct, howMany) {
   var type = ta_struct.type;
+  
   // TWKB variable will carry the last refpoint in a pointarray to the next pointarray. It will hold one value per dimmension
   for (var i = 0; i < ta_struct.ndims; i++) {
     ta_struct.refpoint[i] = 0;
   }
-  // read the geometry
-  var res;
+  
   if (type === constants.POINT) {
-    res = parse_point(ta_struct)
+    return parse_point(ta_struct)
   } else if(type === constants.LINESTRING) {
-    res = parse_line(ta_struct)
+    return parse_line(ta_struct)
   } else if(type === constants.POLYGON) {
-    res = parse_polygon(ta_struct)
+    return parse_polygon(ta_struct)
   } else if(type === constants.MULTIPOINT) {
-    res = parse_multi(ta_struct, parse_point);
+    return parse_multi(ta_struct, parse_point, howMany);
   } else if(type === constants.MULTILINESTRING) {
-    res = parse_multi(ta_struct, parse_line);
+    return parse_multi(ta_struct, parse_line, howMany);
   } else if(type === constants.MULTIPOLYGON) {
-    res = parse_multi(ta_struct, parse_polygon);
+    return parse_multi(ta_struct, parse_polygon, howMany);
   } else if(type === constants.COLLECTION) {
-    res = parse_collection(ta_struct, readBuffer);
+    return parse_collection(ta_struct, howMany);
   } else {
     throw new Error("Unknown type: " + type);
   }
-  
-  return res;
 }
 
 function parse_point(ta_struct) {
@@ -123,32 +121,35 @@ function parse_polygon(ta_struct) {
   return coordinates;
 }
 
-function parse_multi(ta_struct, parser) {
+function parse_multi(ta_struct, parser, howMany) {
+  var type = ta_struct.type;
   var ngeoms = ReadVarInt64(ta_struct);
   var geoms = [];
-  var IDlist = []
+  var IDlist = [];
   if (ta_struct.has_idlist) {
     IDlist = readIDlist(ta_struct, ngeoms);
   }
-  for (var i = 0; i < ngeoms; i++) {
+  for (var i = 0; i < ngeoms && i < howMany; i++) {
     var geo = parser(ta_struct);
     geoms.push(geo);
   }
   return {
+    type: type,
     ids: IDlist,
     geoms: geoms
   }
 }
 
 // TODO: share code with parse_multi
-function parse_collection(ta_struct) {
+function parse_collection(ta_struct, howMany) {
+  var type = ta_struct.type;
   var ngeoms = ReadVarInt64(ta_struct);
   var geoms = [];
-  var IDlist = []
+  var IDlist = [];
   if (ta_struct.has_idlist) {
     IDlist = readIDlist(ta_struct, ngeoms);
   }
-  for (var i = 0; i < ngeoms; i++) {
+  for (var i = 0; i < ngeoms && i < howMany; i++) {
     var geo = readBuffer(ta_struct);
     geoms.push({
       type: ta_struct.type,
@@ -157,7 +158,7 @@ function parse_collection(ta_struct) {
     });
   }
   return {
-    collection: true,
+    type: type,
     ids: IDlist,
     geoms: geoms
   }
@@ -167,7 +168,7 @@ function read_pa(ta_struct, npoints) {
   var i, j;
   var ndims = ta_struct.ndims;
   var factors = ta_struct.factors;
-  var coords = new Float32Array(npoints * ndims);
+  var coords = new Array(npoints * ndims);
 
   for (i = 0; i < npoints; i++) {
     for (j = 0; j < ndims; j++) {

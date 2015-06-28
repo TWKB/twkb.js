@@ -24,10 +24,16 @@ function createFeature(type, coordinates, id, ndims) {
 };
 
 // Create an array of GeoJSON feature objects
-function createFeatures(type, geoms, ids, ndims) {
-  // TODO: consider howMany
+function createFeaturesFromMulti(type, geoms, ids, ndims) {
+  return geoms.map(function(coordinates, i) {
+    return createFeature(type, coordinates, ids ? ids[i] : undefined, ndims);
+  });
+};
+
+// Create an array of GeoJSON feature objects
+function createFeaturesFromCollection(geoms, ids, ndims) {
   return geoms.map(function(g, i) {
-    return createFeature(type, g, ids ? ids[i] : undefined, ndims);
+    return createFeature(g.type, g.coordinates, ids ? ids[i] : undefined, ndims);
   });
 };
 
@@ -45,22 +51,25 @@ transforms[constants.POLYGON] = function(coordinates, ndims) {
   }));
 };
 transforms[constants.MULTIPOINT] = function(geoms, ids, ndims) {
-  return createFeatures(constants.POINT, geoms, ids, ndims);
+  return createFeaturesFromMulti(constants.POINT, geoms, ids, ndims);
 };
 transforms[constants.MULTILINESTRING] = function(geoms, ids, ndims) {
-  return createFeatures(constants.LINESTRING, geoms, ids, ndims);
+  return createFeaturesFromMulti(constants.LINESTRING, geoms, ids, ndims);
 };
 transforms[constants.MULTIPOLYGON] = function(geoms, ids, ndims) {
-  return createFeatures(constants.POLYGON, geoms, ids, ndims);
+  return createFeaturesFromMulti(constants.POLYGON, geoms, ids, ndims);
+};
+transforms[constants.COLLECTION] = function(geoms, ids, ndims) {
+  return createFeaturesFromCollection(geoms, ids, ndims);
 };
 
-// TWKB Float32Array coordinates to GeoJSON coordinates
+// TWKB flat coordinates to GeoJSON coordinates
 function toCoords(coordinates, ndims) {
-  var coords = []
+  var coords = [];
   for (var i = 0, len = coordinates.length; i < len; i += ndims) {
-    var pos = []
+    var pos = [];
     for (var c = 0; c < ndims; ++c) {
-      pos.push(coordinates[i + c])
+      pos.push(coordinates[i + c]);
     }
     coords.push(pos);
   }
@@ -70,31 +79,20 @@ function toCoords(coordinates, ndims) {
 /**
  * Transform TWKB to GeoJSON FeatureCollection
  * @param {ArrayBuffer} buffer Binary buffer containing TWKB data
- * @param {number} startOffset Byte offset to start reading the binary buffer
- * @param {number} howMany Stop translation after this many features
  */
-function toGeoJSON(buffer, startOffset, howMany) {
+function toGeoJSON(buffer) {
   var ta_struct = {
     buffer: buffer,
-    cursor: startOffset === undefined ? 0 : startOffset,
+    cursor: 0,
     bufferLength: buffer.byteLength,
     refpoint: new Int32Array(4 /* max dims */)
   };
     
   var features = [];
   while (ta_struct.cursor < ta_struct.bufferLength) {
-    var res = readBuffer(ta_struct);
-    // TODO: these conditionals could be better
-    if (res.collection) {
-      res.geoms.forEach(function(g, i) {
-        features.push({
-          type: "Feature",
-          id: res.ids[i],
-          geometry: transforms[g.type](g.coordinates, g.ndims)
-        });
-      });
-    } else if (res.geoms) {
-      features = features.concat(transforms[ta_struct.type](res.geoms, res.ids, ta_struct.ndims));
+    var res = readBuffer(ta_struct, Number.MAX_VALUE);
+    if (res.geoms) {
+      features = features.concat(transforms[res.type](res.geoms, res.ids, ta_struct.ndims));
     } else {
       features.push({ type: "Feature", geometry: transforms[ta_struct.type](res, ta_struct.ndims) });
     }

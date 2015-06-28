@@ -1,5 +1,7 @@
 var toGeoJSON = require('./toGeoJSON');
+var read = require('./read');
 
 module.exports = {
-  toGeoJSON: toGeoJSON
+  toGeoJSON: toGeoJSON,
+  read: read
 };
