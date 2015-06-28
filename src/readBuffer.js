@@ -59,18 +59,13 @@ function readBuffer(ta_struct, howMany) {
     ta_struct.size = ReadVarInt64(ta_struct);
   }
 
-  // bounding box in the format [xmin, deltax, ymin, deltay, zmin, deltaz]
-  ta_struct.bbox = {};
   if (ta_struct.has_bbox) {
-    ta_struct.bbox.min = [];
-    ta_struct.bbox.max = [];
-    for (var j = 0; j < ta_struct.ndims; j++) {
-      ta_struct.bbox.min[j] = ReadVarSInt64(ta_struct)
-      ta_struct.bbox.max[j] = ReadVarSInt64(ta_struct) + ta_struct.bbox.min[j];
-    }
-  } else {
-    ta_struct.bbox.min = [constants.MAX_VALUE,constants.MAX_VALUE,constants.MAX_VALUE,constants.MAX_VALUE];
-    ta_struct.bbox.max = [constants.MIN_VALUE,constants.MIN_VALUE,constants.MIN_VALUE,constants.MIN_VALUE];
+    ta_struct.bbox = [];
+    // TODO: handle ndims
+    ta_struct.bbox[0] = ReadVarSInt64(ta_struct);
+    ta_struct.bbox[2] = ReadVarSInt64(ta_struct) + ta_struct.bbox[0];
+    ta_struct.bbox[1] = ReadVarSInt64(ta_struct);
+    ta_struct.bbox[3] = ReadVarSInt64(ta_struct) + ta_struct.bbox[1];
   }
 
   return readObjects(ta_struct, howMany);
@@ -160,7 +155,7 @@ function parse_collection(ta_struct, howMany) {
     type: type,
     ids: IDlist,
     ndims: ta_struct.ndims,
-    offset: ta_struct.cursor,
+    offset: howMany < Number.MAX_VALUE ? ta_struct.cursor : undefined,
     geoms: geoms
   }
 }
