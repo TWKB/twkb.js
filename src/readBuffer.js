@@ -91,11 +91,11 @@ function readObjects(ta_struct, howMany) {
   } else if(type === constants.POLYGON) {
     return parse_polygon(ta_struct)
   } else if(type === constants.MULTIPOINT) {
-    return parse_multi(ta_struct, parse_point, howMany);
+    return parse_multi(ta_struct, parse_point);
   } else if(type === constants.MULTILINESTRING) {
-    return parse_multi(ta_struct, parse_line, howMany);
+    return parse_multi(ta_struct, parse_line);
   } else if(type === constants.MULTIPOLYGON) {
-    return parse_multi(ta_struct, parse_polygon, howMany);
+    return parse_multi(ta_struct, parse_polygon);
   } else if(type === constants.COLLECTION) {
     return parse_collection(ta_struct, howMany);
   } else {
@@ -121,7 +121,7 @@ function parse_polygon(ta_struct) {
   return coordinates;
 }
 
-function parse_multi(ta_struct, parser, howMany) {
+function parse_multi(ta_struct, parser) {
   var type = ta_struct.type;
   var ngeoms = ReadVarInt64(ta_struct);
   var geoms = [];
@@ -129,7 +129,7 @@ function parse_multi(ta_struct, parser, howMany) {
   if (ta_struct.has_idlist) {
     IDlist = readIDlist(ta_struct, ngeoms);
   }
-  for (var i = 0; i < ngeoms && i < howMany; i++) {
+  for (var i = 0; i < ngeoms; i++) {
     var geo = parser(ta_struct);
     geoms.push(geo);
   }
@@ -153,13 +153,14 @@ function parse_collection(ta_struct, howMany) {
     var geo = readBuffer(ta_struct);
     geoms.push({
       type: ta_struct.type,
-      ndims: ta_struct.ndims,
       coordinates: geo
     });
   }
   return {
     type: type,
     ids: IDlist,
+    ndims: ta_struct.ndims,
+    offset: ta_struct.cursor,
     geoms: geoms
   }
 }
