@@ -19,7 +19,7 @@ npm install
 npm run build
 ```
 
-## Wxample
+## Example
 
 this is a simple example using leaflet
 
