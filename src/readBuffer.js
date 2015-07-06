@@ -1,13 +1,10 @@
-var constants = require('./constants');
+import * as constants from './constants';
+import {ReadVarInt64, ReadVarSInt64, unzigzag} from './protobuf';
 
-var ReadVarInt64 = require('./protobuf').ReadVarInt64;
-var ReadVarSInt64 = require('./protobuf').ReadVarSInt64;
-var unzigzag = require('./protobuf').unzigzag;
-
-function readBuffer(ta_struct, howMany) {
-  var flag;
-  var has_z = 0;
-  var has_m = 0;
+export default function readBuffer(ta_struct, howMany) {
+  let flag;
+  let has_z = 0;
+  let has_m = 0;
 
   // geometry type and precision header
   flag = ta_struct.buffer[ta_struct.cursor];
@@ -30,7 +27,7 @@ function readBuffer(ta_struct, howMany) {
 
   // the geometry has Z and/or M coordinates
   if (extended_dims) {
-    var extended_dims_flag = ta_struct.buffer[ta_struct.cursor];
+    const extended_dims_flag = ta_struct.buffer[ta_struct.cursor];
     ta_struct.cursor++;
 
     // Strip Z/M presence and precision from ext byte 
@@ -72,10 +69,10 @@ function readBuffer(ta_struct, howMany) {
 }
 
 function readObjects(ta_struct, howMany) {
-  var type = ta_struct.type;
+  const type = ta_struct.type;
   
   // TWKB variable will carry the last refpoint in a pointarray to the next pointarray. It will hold one value per dimmension
-  for (var i = 0; i < ta_struct.ndims; i++) {
+  for (let i = 0; i < ta_struct.ndims; i++) {
     ta_struct.refpoint[i] = 0;
   }
   
@@ -103,29 +100,29 @@ function parse_point(ta_struct) {
 }
 
 function parse_line(ta_struct) {
-  var npoints = ReadVarInt64(ta_struct);
+  const npoints = ReadVarInt64(ta_struct);
   return read_pa(ta_struct, npoints);
 }
 
 function parse_polygon(ta_struct) {
-  var coordinates = [];
+  const coordinates = [];
   var nrings = ReadVarInt64(ta_struct);
-  for (var ring = 0; ring < nrings; ++ring) {
+  for (let ring = 0; ring < nrings; ++ring) {
     coordinates[ring] = parse_line(ta_struct);
   }
   return coordinates;
 }
 
 function parse_multi(ta_struct, parser) {
-  var type = ta_struct.type;
-  var ngeoms = ReadVarInt64(ta_struct);
-  var geoms = [];
-  var IDlist = [];
+  const type = ta_struct.type;
+  const ngeoms = ReadVarInt64(ta_struct);
+  const geoms = [];
+  let IDlist = [];
   if (ta_struct.has_idlist) {
     IDlist = readIDlist(ta_struct, ngeoms);
   }
   for (var i = 0; i < ngeoms; i++) {
-    var geo = parser(ta_struct);
+    const geo = parser(ta_struct);
     geoms.push(geo);
   }
   return {
@@ -137,15 +134,15 @@ function parse_multi(ta_struct, parser) {
 
 // TODO: share code with parse_multi
 function parse_collection(ta_struct, howMany) {
-  var type = ta_struct.type;
-  var ngeoms = ReadVarInt64(ta_struct);
-  var geoms = [];
-  var IDlist = [];
+  const type = ta_struct.type;
+  const ngeoms = ReadVarInt64(ta_struct);
+  const geoms = [];
+  let IDlist = [];
   if (ta_struct.has_idlist) {
     IDlist = readIDlist(ta_struct, ngeoms);
   }
   for (var i = 0; i < ngeoms && i < howMany; i++) {
-    var geo = readBuffer(ta_struct);
+    const geo = readBuffer(ta_struct);
     geoms.push({
       type: ta_struct.type,
       coordinates: geo
@@ -161,10 +158,10 @@ function parse_collection(ta_struct, howMany) {
 }
 
 function read_pa(ta_struct, npoints) {
-  var i, j;
-  var ndims = ta_struct.ndims;
-  var factors = ta_struct.factors;
-  var coords = new Array(npoints * ndims);
+  let i, j;
+  const ndims = ta_struct.ndims;
+  const factors = ta_struct.factors;
+  const coords = new Array(npoints * ndims);
 
   for (i = 0; i < npoints; i++) {
     for (j = 0; j < ndims; j++) {
@@ -177,7 +174,7 @@ function read_pa(ta_struct, npoints) {
   if(ta_struct.include_bbox && !ta_struct.has_bbox) {
     for (i = 0; i < npoints; i++) {
       for (j = 0; j < ndims; j++) { 
-        var c  = coords[j * ndims + i]
+        const c = coords[j * ndims + i]
         if(c < ta_struct.bbox.min[j]) {
           ta_struct.bbox.min[j] = c;
         }
@@ -191,11 +188,9 @@ function read_pa(ta_struct, npoints) {
 }
 
 function readIDlist(ta_struct, n) {
-  var idList = [];
-  for (var i = 0; i < n; i++) {
+  const idList = [];
+  for (let i = 0; i < n; i++) {
     idList.push(ReadVarSInt64(ta_struct));
   }
   return idList;
 }
-
-module.exports = readBuffer;

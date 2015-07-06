@@ -1,11 +1,7 @@
-module.exports = {
-  POINT: 1,
-  LINESTRING: 2,
-  POLYGON: 3,
-  MULTIPOINT: 4,
-  MULTILINESTRING: 5,
-  MULTIPOLYGON: 6,
-  COLLECTION: 7,
-  MAX_VALUE: Number.MAX_VALUE,
-  MIN_VALUE: Number.MIN_VALUE
-};
+export const POINT = 1;
+export const LINESTRING = 2;
+export const POLYGON = 3;
+export const MULTIPOINT = 4;
+export const MULTILINESTRING = 5;
+export const MULTIPOLYGON = 6;
+export const COLLECTION = 7;

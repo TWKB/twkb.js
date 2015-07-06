@@ -1,7 +1,7 @@
-var constants = require('./constants');
-var readBuffer = require('./readBuffer');
+import * as constants from './constants';
+import readBuffer from './readBuffer';
 
-var typeMap = {};
+const typeMap = {};
 typeMap[constants.POINT] = 'Point';
 typeMap[constants.LINESTRING] = 'LineString';
 typeMap[constants.POLYGON] = 'Polygon';
@@ -12,7 +12,7 @@ function createGeometry(type, coordinates) {
     type: typeMap[type],
     coordinates: coordinates
   };
-};
+}
 
 // Create GeoJSON Feature object (intended for TWKB multi-types)
 function createFeature(type, coordinates, id, ndims) {
@@ -21,53 +21,44 @@ function createFeature(type, coordinates, id, ndims) {
     id: id,
     geometry: transforms[type](coordinates, ndims)
   };
-};
+}
 
 // Create an array of GeoJSON feature objects
 function createFeaturesFromMulti(type, geoms, ids, ndims) {
-  return geoms.map(function(coordinates, i) {
-    return createFeature(type, coordinates, ids ? ids[i] : undefined, ndims);
-  });
-};
+  return geoms.map((coordinates, i) =>
+    createFeature(type, coordinates, ids ? ids[i] : undefined, ndims)
+  );
+}
 
 // Create an array of GeoJSON feature objects
 function createFeaturesFromCollection(geoms, ids, ndims) {
-  return geoms.map(function(g, i) {
-    return createFeature(g.type, g.coordinates, ids ? ids[i] : undefined, ndims);
-  });
-};
+  return geoms.map((g, i) => 
+    createFeature(g.type, g.coordinates, ids ? ids[i] : undefined, ndims)
+  );
+}
 
-// Functions that map from intermediate representation to GeoJSON object
-var transforms = {};
-transforms[constants.POINT] = function(coordinates, ndims) {
-  return createGeometry(constants.POINT, toCoords(coordinates, ndims)[0]);
-};
-transforms[constants.LINESTRING] = function(coordinates, ndims) {
-  return createGeometry(constants.LINESTRING, toCoords(coordinates, ndims));
-};
-transforms[constants.POLYGON] = function(coordinates, ndims) {
-  return createGeometry(constants.POLYGON, coordinates.map(function(c) {
-    return toCoords(c, ndims);
-  }));
-};
-transforms[constants.MULTIPOINT] = function(geoms, ids, ndims) {
-  return createFeaturesFromMulti(constants.POINT, geoms, ids, ndims);
-};
-transforms[constants.MULTILINESTRING] = function(geoms, ids, ndims) {
-  return createFeaturesFromMulti(constants.LINESTRING, geoms, ids, ndims);
-};
-transforms[constants.MULTIPOLYGON] = function(geoms, ids, ndims) {
-  return createFeaturesFromMulti(constants.POLYGON, geoms, ids, ndims);
-};
-transforms[constants.COLLECTION] = function(geoms, ids, ndims) {
-  return createFeaturesFromCollection(geoms, ids, ndims);
-};
+// Map TWKB type to correct transformation function from intermediate representation to GeoJSON object
+const transforms = {};
+transforms[constants.POINT] = (coordinates, ndims) => 
+  createGeometry(constants.POINT, toCoords(coordinates, ndims)[0]);
+transforms[constants.LINESTRING] = (coordinates, ndims) =>
+  createGeometry(constants.LINESTRING, toCoords(coordinates, ndims));
+transforms[constants.POLYGON] = (coordinates, ndims) =>
+  createGeometry(constants.POLYGON, coordinates.map((c) => toCoords(c, ndims)));
+transforms[constants.MULTIPOINT] = (geoms, ids, ndims) =>
+  createFeaturesFromMulti(constants.POINT, geoms, ids, ndims);
+transforms[constants.MULTILINESTRING] = (geoms, ids, ndims) =>
+  createFeaturesFromMulti(constants.LINESTRING, geoms, ids, ndims);
+transforms[constants.MULTIPOLYGON] = (geoms, ids, ndims) =>
+  createFeaturesFromMulti(constants.POLYGON, geoms, ids, ndims);
+transforms[constants.COLLECTION] = (geoms, ids, ndims) =>
+  createFeaturesFromCollection(geoms, ids, ndims);
 
 // TWKB flat coordinates to GeoJSON coordinates
 function toCoords(coordinates, ndims) {
-  var coords = [];
+  const coords = [];
   for (var i = 0, len = coordinates.length; i < len; i += ndims) {
-    var pos = [];
+    const pos = [];
     for (var c = 0; c < ndims; ++c) {
       pos.push(coordinates[i + c]);
     }
@@ -81,16 +72,16 @@ function toCoords(coordinates, ndims) {
  * @param {ArrayBuffer} buffer Binary buffer containing TWKB data
  */
 function toGeoJSON(buffer) {
-  var ta_struct = {
+  const ta_struct = {
     buffer: buffer,
     cursor: 0,
     bufferLength: buffer.byteLength,
     refpoint: new Int32Array(4 /* max dims */)
   };
     
-  var features = [];
+  let features = [];
   while (ta_struct.cursor < ta_struct.bufferLength) {
-    var res = readBuffer(ta_struct, Number.MAX_VALUE);
+    const res = readBuffer(ta_struct, Number.MAX_VALUE);
     if (res.geoms) {
       features = features.concat(transforms[res.type](res.geoms, res.ids, ta_struct.ndims));
     } else {

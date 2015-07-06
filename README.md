@@ -1,5 +1,7 @@
 # twkb
 
+[![Build Status](https://travis-ci.org/TWKB/twkb.js.svg)](https://travis-ci.org/TWKB/twkb.js)
+
 This library allows to decode TWKB.
 
 WARNING: this is a preview and may change without any notice
