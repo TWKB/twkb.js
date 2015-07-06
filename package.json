@@ -30,17 +30,16 @@
   "main": "index.js",
   "dependencies": {},
   "scripts": {
-    "start": "watchify src/twkb.js --outfile build/twkb.js",
-    "build": "browserify src/twkb.js | uglifyjs --compress --output dist/twkb.min.js",
+    "build": "browserify -t babelify src/twkb.js | uglifyjs --compress --output dist/twkb.min.js",
     "test": "mocha --compilers js:mocha-babel"
   },
   "devDependencies": {
-    "browserify": "10.2.3",
+    "browserify": "10.2.4",
+    "babelify": "6.1.2",
     "babel": "5.6.14",
     "mocha": "2.2.5",
     "mocha-babel": "3.0.0",
-    "uglify-js": "2.4.23",
-    "watchify": "3.2.1"
+    "uglify-js": "2.4.23"
   },
   "optionalDependencies": {},
   "engines": {
