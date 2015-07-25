@@ -1,4 +1,5 @@
 import * as constants from './constants';
+console.log(constants);
 import {ReadVarInt64, ReadVarSInt64, unzigzag} from './protobuf';
 
 export default function readBuffer(ta_struct, howMany) {

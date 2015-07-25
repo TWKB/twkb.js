@@ -69,13 +69,13 @@ function toCoords(coordinates, ndims) {
 
 /**
  * Transform TWKB to GeoJSON FeatureCollection
- * @param {ArrayBuffer} buffer Binary buffer containing TWKB data
+ * @param {ArrayBuffer|Buffer} buffer Binary buffer containing TWKB data
  */
 function toGeoJSON(buffer) {
   const ta_struct = {
     buffer: buffer,
     cursor: 0,
-    bufferLength: buffer.byteLength,
+    bufferLength: buffer.byteLength || buffer.length,
     refpoint: new Int32Array(4 /* max dims */)
   };
     
