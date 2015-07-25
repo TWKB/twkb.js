@@ -1,11 +1,11 @@
-import toGeoJSON from './toGeoJSON';
-import read from './read';
+var toGeoJSON = require('./toGeoJSON');
+var read = require('./read');
 
-const twkb = {
+var twkb = {
   toGeoJSON: toGeoJSON,
   read: read
 };
 
-export default twkb;
+module.exports = twkb;
 
 global.twkb = twkb;

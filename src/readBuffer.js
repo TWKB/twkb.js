@@ -1,10 +1,12 @@
-import * as constants from './constants';
-import {ReadVarInt64, ReadVarSInt64, unzigzag} from './protobuf';
+var constants = require('./constants');
+var ReadVarInt64 = require('./protobuf').ReadVarInt64;
+var ReadVarSInt64 = require('./protobuf').ReadVarSInt64;
+var unzigzag = require('./protobuf').unzigzag;
 
-export default function readBuffer(ta_struct, howMany) {
-  let flag;
-  let has_z = 0;
-  let has_m = 0;
+function readBuffer(ta_struct, howMany) {
+  var flag;
+  var has_z = 0;
+  var has_m = 0;
 
   // geometry type and precision header
   flag = ta_struct.buffer[ta_struct.cursor];
@@ -27,7 +29,7 @@ export default function readBuffer(ta_struct, howMany) {
 
   // the geometry has Z and/or M coordinates
   if (extended_dims) {
-    const extended_dims_flag = ta_struct.buffer[ta_struct.cursor];
+    var extended_dims_flag = ta_struct.buffer[ta_struct.cursor];
     ta_struct.cursor++;
 
     // Strip Z/M presence and precision from ext byte 
@@ -69,10 +71,10 @@ export default function readBuffer(ta_struct, howMany) {
 }
 
 function readObjects(ta_struct, howMany) {
-  const type = ta_struct.type;
+  var type = ta_struct.type;
   
   // TWKB variable will carry the last refpoint in a pointarray to the next pointarray. It will hold one value per dimmension
-  for (let i = 0; i < ta_struct.ndims; i++) {
+  for (var i = 0; i < ta_struct.ndims; i++) {
     ta_struct.refpoint[i] = 0;
   }
   
@@ -105,24 +107,24 @@ function parse_line(ta_struct) {
 }
 
 function parse_polygon(ta_struct) {
-  const coordinates = [];
+  var coordinates = [];
   var nrings = ReadVarInt64(ta_struct);
-  for (let ring = 0; ring < nrings; ++ring) {
+  for (var ring = 0; ring < nrings; ++ring) {
     coordinates[ring] = parse_line(ta_struct);
   }
   return coordinates;
 }
 
 function parse_multi(ta_struct, parser) {
-  const type = ta_struct.type;
-  const ngeoms = ReadVarInt64(ta_struct);
-  const geoms = [];
-  let IDlist = [];
+  var type = ta_struct.type;
+  var ngeoms = ReadVarInt64(ta_struct);
+  var geoms = [];
+  var IDlist = [];
   if (ta_struct.has_idlist) {
     IDlist = readIDlist(ta_struct, ngeoms);
   }
   for (var i = 0; i < ngeoms; i++) {
-    const geo = parser(ta_struct);
+    var geo = parser(ta_struct);
     geoms.push(geo);
   }
   return {
@@ -134,15 +136,15 @@ function parse_multi(ta_struct, parser) {
 
 // TODO: share code with parse_multi
 function parse_collection(ta_struct, howMany) {
-  const type = ta_struct.type;
-  const ngeoms = ReadVarInt64(ta_struct);
-  const geoms = [];
-  let IDlist = [];
+  var type = ta_struct.type;
+  var ngeoms = ReadVarInt64(ta_struct);
+  var geoms = [];
+  var IDlist = [];
   if (ta_struct.has_idlist) {
     IDlist = readIDlist(ta_struct, ngeoms);
   }
   for (var i = 0; i < ngeoms && i < howMany; i++) {
-    const geo = readBuffer(ta_struct);
+    var geo = readBuffer(ta_struct);
     geoms.push({
       type: ta_struct.type,
       coordinates: geo
@@ -158,10 +160,10 @@ function parse_collection(ta_struct, howMany) {
 }
 
 function read_pa(ta_struct, npoints) {
-  let i, j;
-  const ndims = ta_struct.ndims;
-  const factors = ta_struct.factors;
-  const coords = new Array(npoints * ndims);
+  var i, j;
+  var ndims = ta_struct.ndims;
+  var factors = ta_struct.factors;
+  var coords = new Array(npoints * ndims);
 
   for (i = 0; i < npoints; i++) {
     for (j = 0; j < ndims; j++) {
@@ -189,8 +191,10 @@ function read_pa(ta_struct, npoints) {
 
 function readIDlist(ta_struct, n) {
   const idList = [];
-  for (let i = 0; i < n; i++) {
+  for (var i = 0; i < n; i++) {
     idList.push(ReadVarSInt64(ta_struct));
   }
   return idList;
 }
+
+module.exports = readBuffer

@@ -1,4 +1,4 @@
-import readBuffer from './readBuffer';
+var readBuffer = require('./readBuffer');
 
 /**
  * Read TWKB to object representation
@@ -6,20 +6,20 @@ import readBuffer from './readBuffer';
  * @param {number} startOffset Byte offset to start reading the binary buffer
  * @param {number} howMany Stop translation after this many objects
  */
-export default function read(buffer, startOffset, howMany) {
+function read(buffer, startOffset, howMany) {
   howMany = howMany || Number.MAX_VALUE;
   
-  const ta_struct = {
+  var ta_struct = {
     buffer: buffer,
     cursor: startOffset === undefined ? 0 : startOffset,
     bufferLength: buffer.byteLength,
     refpoint: new Int32Array(4 /* max dims */)
   };
     
-  const data = []
-  let c = 0;
+  var data = []
+  var c = 0;
   while (ta_struct.cursor < ta_struct.bufferLength && c < howMany) {
-    const res = readBuffer(ta_struct, howMany);
+    var res = readBuffer(ta_struct, howMany);
     if (res.length > 0) {
       // single geom type, add type info
       data.push({
@@ -38,3 +38,5 @@ export default function read(buffer, startOffset, howMany) {
   
   return data;
 }
+
+exports.read = read
