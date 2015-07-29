@@ -50,7 +50,8 @@ function readBuffer (ta_struct, howMany) {
     ta_struct.has_m = has_m
   }
 
-  ta_struct.ndims = 2 + has_z + has_m
+  var ndims = 2 + has_z + has_m
+  ta_struct.ndims = ndims
 
   // read the total size in bytes
   // The value is the size in bytes of the remainder of the geometry after the size attribute.
@@ -59,12 +60,14 @@ function readBuffer (ta_struct, howMany) {
   }
 
   if (ta_struct.has_bbox) {
-    ta_struct.bbox = []
-    // TODO: handle ndims
-    ta_struct.bbox[0] = ReadVarSInt64(ta_struct)
-    ta_struct.bbox[2] = ReadVarSInt64(ta_struct) + ta_struct.bbox[0]
-    ta_struct.bbox[1] = ReadVarSInt64(ta_struct)
-    ta_struct.bbox[3] = ReadVarSInt64(ta_struct) + ta_struct.bbox[1]
+    var bbox = []
+    for (var i = 0; i <= ndims - 1; i++) {
+      var min = ReadVarSInt64(ta_struct)
+      var max = min + ReadVarSInt64(ta_struct)
+      bbox[i] = min
+      bbox[i + ndims] = max
+    }
+    ta_struct.bbox = bbox
   }
 
   return readObjects(ta_struct, howMany)
