@@ -50,7 +50,7 @@ get('file.twkb', function(data) {
 
 ### twkb.toGeoJSON(buffer)
 
-returns valid geojson for the features
+Returns valid GeoJSON for the features
 
 
 ## License
