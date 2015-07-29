@@ -1,1 +1,1 @@
-module.exports = require('./src/twkb');
+module.exports = require('./src/twkb')

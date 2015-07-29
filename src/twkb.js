@@ -1,11 +1,11 @@
-var toGeoJSON = require('./toGeoJSON');
-var read = require('./read');
+var toGeoJSON = require('./toGeoJSON')
+var read = require('./read')
 
 var twkb = {
   toGeoJSON: toGeoJSON,
   read: read
-};
+}
 
-module.exports = twkb;
+module.exports = twkb
 
-global.twkb = twkb;
+global.twkb = twkb

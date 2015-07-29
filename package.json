@@ -31,14 +31,22 @@
   "dependencies": {},
   "scripts": {
     "build": "browserify src/twkb.js | uglifyjs --compress --output dist/twkb.min.js",
-    "test": "mocha"
+    "test": "standard && mocha"
   },
   "devDependencies": {
     "browserify": "11.0.0",
+    "standard": "4.5.4",
     "mocha": "2.2.5",
     "uglify-js": "2.4.24"
   },
   "optionalDependencies": {},
+  "standard": {
+    "ignore": [
+      "build",
+      "examples"
+    ],
+    "global": [ "TWKB", "describe", "it" ]
+  },
   "engines": {
     "node": "*"
   }
