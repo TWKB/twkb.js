@@ -1,1 +1,1 @@
-module.exports = require('./decoder');
+module.exports = require('./src/twkb')
