@@ -12,7 +12,7 @@ function read (buffer, startOffset, howMany) {
   var ta_struct = {
     buffer: buffer,
     cursor: startOffset === undefined ? 0 : startOffset,
-    bufferLength: buffer.byteLength,
+    bufferLength: buffer.byteLength || buffer.length,
     refpoint: new Int32Array(4 /* max dims */)
   }
 
@@ -39,4 +39,4 @@ function read (buffer, startOffset, howMany) {
   return data
 }
 
-exports.read = read
+module.exports = read
