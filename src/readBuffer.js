@@ -105,7 +105,7 @@ function parse_point (ta_struct) {
 }
 
 function parse_line (ta_struct) {
-  const npoints = ReadVarInt64(ta_struct)
+  var npoints = ReadVarInt64(ta_struct)
   return read_pa(ta_struct, npoints)
 }
 
@@ -179,7 +179,7 @@ function read_pa (ta_struct, npoints) {
   if (ta_struct.include_bbox && !ta_struct.has_bbox) {
     for (i = 0; i < npoints; i++) {
       for (j = 0; j < ndims; j++) {
-        const c = coords[j * ndims + i]
+        var c = coords[j * ndims + i]
         if (c < ta_struct.bbox.min[j]) {
           ta_struct.bbox.min[j] = c
         }
@@ -193,7 +193,7 @@ function read_pa (ta_struct, npoints) {
 }
 
 function readIDlist (ta_struct, n) {
-  const idList = []
+  var idList = []
   for (var i = 0; i < n; i++) {
     idList.push(ReadVarSInt64(ta_struct))
   }
