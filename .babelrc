@@ -1,0 +1,29 @@
+{
+    "env": {
+        "production": {
+            "presets": [
+                [
+                    "env",
+                    {
+                        "modules": false,
+                        "targets": [
+                            "ie >= 11"
+                        ]
+                    }
+                ]
+            ]
+        },
+        "test": {
+            "presets": [
+                [
+                    "env",
+                    {
+                        "targets": {
+                            "node": "current"
+                        }
+                    }
+                ]
+            ]
+        }
+    }
+}
