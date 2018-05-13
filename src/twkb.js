@@ -1,16 +1,7 @@
-var constants = require('./constants')
-var toGeoJSON = require('./toGeoJSON')
-var read = require('./read')
+import toGeoJSON from './toGeoJSON'
+import read from './read'
 
-var twkb = {
+export default {
   toGeoJSON: toGeoJSON,
   read: read
 }
-
-for (var key in constants) {
-  twkb[key] = constants[key]
-}
-
-module.exports = twkb
-
-global.twkb = twkb

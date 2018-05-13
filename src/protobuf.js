@@ -3,11 +3,11 @@
  * See https://developers.google.com/protocol-buffers/docs/encoding
  */
 
-function ReadVarInt64 (ta_struct) {
-  var cursor = ta_struct.cursor
-  var nVal = 0
-  var nShift = 0
-  var nByte
+export function readVarInt64 (ta_struct) {
+  let cursor = ta_struct.cursor
+  let nVal = 0
+  let nShift = 0
+  let nByte
 
   while (true) {
     nByte = ta_struct.buffer[cursor]
@@ -22,18 +22,13 @@ function ReadVarInt64 (ta_struct) {
   }
 }
 
-function ReadVarSInt64 (ta_struct) {
-  var nVal = ReadVarInt64(ta_struct)
+export function readVarSInt64 (ta_struct) {
+  const nVal = readVarInt64(ta_struct)
   return unzigzag(nVal)
 }
 
-function unzigzag (nVal) {
-  if ((nVal & 1) === 0) {
+export function unzigzag (nVal) {
+  if ((nVal & 1) === 0)
     return nVal >> 1
-  }
   return -(nVal >> 1) - 1
 }
-
-exports.ReadVarInt64 = ReadVarInt64
-exports.ReadVarSInt64 = ReadVarSInt64
-exports.unzigzag = unzigzag
