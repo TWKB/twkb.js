@@ -225,12 +225,12 @@ describe('twkb', function () {
     })
 
     it('should decode a collection of multipolygons', function () {
-      // select st_astwkb(array_agg(geom::geometry), array_agg(id)) from (select 0 as id, 'POINT(0 1)' as geom union all select 1 as id, 'LINESTRING(4 5, 6 7)' as geom) a;
+      // select st_astwkb(array_agg(geom::geometry), array_agg(id)) from (select 0 as id, 'multipolygon(((5 47,5 43,11 43,11 47,5 47)),((-1 50,-1 45,4 45,4 50,-1 50)))' as geom union all select 1 as id, 'multipolygon(((-5 29,-11 29,-11 34,-5 34,-5 29)),((-10 41,-10 36,-4 36,-4 41,-10 41)))' as geom) a;
       var f = twkb.read(new Buffer('070402000206000201050a5e00070c0000080b0001050b0600090a00000a09000600020105093a0b00000a0c0000090105091800090c00000a0b00', 'hex'))[0]
-      assert.equal(f.type, twkb.COLLECTION)
+      assert.equal(f.type, COLLECTION)
       assert.equal(f.geoms.length, 2)
-      assert.equal(f.geoms[0].type, twkb.MULTIPOLYGON)
-      assert.equal(f.geoms[1].type, twkb.MULTIPOLYGON)
+      assert.equal(f.geoms[0].type, MULTIPOLYGON)
+      assert.equal(f.geoms[1].type, MULTIPOLYGON)
     })
 
   })
