@@ -30,17 +30,20 @@
   "main": "index.js",
   "scripts": {
     "build": "rollup -c",
-    "test": "NODE_ENV=test eslint src && NODE_ENV=test mocha --compilers js:babel-register --recursive test"
+    "test": "NODE_ENV=test eslint src && NODE_ENV=test mocha -r @babel/register --recursive test"
   },
   "devDependencies": {
+    "@babel/core": "7.4.5",
+    "@babel/preset-env": "7.4.5",
+    "@babel/register": "7.4.4",
     "babel-core": "6.26.3",
     "babel-preset-env": "1.7.0",
     "babel-register": "6.26.0",
-    "eslint": "4.19.1",
-    "mocha": "5.1.1",
-    "rollup": "0.58.2",
-    "rollup-plugin-babel": "3.0.4",
-    "rollup-plugin-uglify": "3.0.0"
+    "eslint": "5.16.0",
+    "mocha": "6.1.4",
+    "rollup": "1.14.2",
+    "rollup-plugin-babel": "4.3.2",
+    "rollup-plugin-terser": "5.0.0"
   },
   "optionalDependencies": {},
   "standard": {
