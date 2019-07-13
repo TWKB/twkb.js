@@ -33,17 +33,17 @@
     "test": "NODE_ENV=test eslint src && NODE_ENV=test mocha -r @babel/register --recursive test"
   },
   "devDependencies": {
-    "@babel/core": "7.4.5",
-    "@babel/preset-env": "7.4.5",
+    "@babel/core": "7.5.4",
+    "@babel/preset-env": "7.5.4",
     "@babel/register": "7.4.4",
     "babel-core": "6.26.3",
     "babel-preset-env": "1.7.0",
     "babel-register": "6.26.0",
-    "eslint": "5.16.0",
+    "eslint": "6.0.1",
     "mocha": "6.1.4",
-    "rollup": "1.14.2",
-    "rollup-plugin-babel": "4.3.2",
-    "rollup-plugin-terser": "5.0.0"
+    "rollup": "1.16.7",
+    "rollup-plugin-babel": "4.3.3",
+    "rollup-plugin-terser": "5.1.1"
   },
   "optionalDependencies": {},
   "standard": {
